@@ -1,7 +1,7 @@
 #include <vector>
 #include <string>
 #include <memory>
-#include <iostream>
+#include <limits>
 #include <tiffio.h>
 
 namespace img_tiff
@@ -48,5 +48,37 @@ namespace img_tiff
 
         TIFFClose(tif);
         return std::move(imgs);
+    }
+
+    template <typename Tin, typename Tout, int Scale>
+    std::vector<std::vector<std::vector<Tout>>> normalize(std::vector<std::vector<std::vector<Tin>>> imgs)
+    {
+        std::vector<std::vector<std::vector<Tout>>> newImgs;
+        newImgs.reserve(imgs.size());
+        for (auto &img : imgs)
+        {
+            std::vector<std::vector<Tout>> newImg;
+            newImg.reserve(img.size());
+            for (auto &row : img)
+            {
+                std::vector<Tout> newRow;
+                newRow.reserve(row.size());
+                for (auto &pixel : row)
+                {
+                    auto val = static_cast<Tout>(pixel) / Scale;
+                    newRow.emplace_back(val);
+                }
+                newImg.emplace_back(std::move(newRow));
+            }
+            newImgs.emplace_back(std::move(newImg));
+        }
+        return std::move(newImgs);
+    }
+
+    template <typename Tin, typename Tout>
+    std::vector<std::vector<std::vector<Tout>>> normalize(std::vector<std::vector<std::vector<Tin>>> imgs)
+    {
+        constexpr auto max = std::numeric_limits<Tin>::max();
+        return std::move(normalize<Tin, Tout, max>(imgs));
     }
 }

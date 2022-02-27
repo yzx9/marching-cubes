@@ -8,7 +8,8 @@ find_package(TIFF)
 add_executable(tiff_marching_cube
     src/main.cpp
     src/tiff.hpp
-    src/marchingCubes.hpp   src/marchingCubes.cpp
+    src/marchingCubes.hpp
+    src/marchingCubesStateTables.hpp
 )
 
 target_link_libraries(tiff_marching_cube TIFF::TIFF)

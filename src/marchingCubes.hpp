@@ -169,6 +169,10 @@ namespace marching_cubes
                     normal[2] = (voxels[x][y][z + 1] - voxels[x][y][z - 1]) / 2;
                 }
 
+                auto norm = std::sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
+                for (int i = 0; i < 3; i++)
+                    normal[i] /= norm;
+
                 v[i] = Vertice<Vec3>{
                     val : val,
                     normal : normal

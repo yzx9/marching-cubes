@@ -123,17 +123,6 @@ namespace marching_cubes
                 auto z = std::get<2>(pos) + oz;
                 auto val = voxels[x][y][z];
 
-                constexpr auto getNorm = [](int v, int mv, float val, const std::function<float(int)> &get)
-                {
-                    if (v == 0)
-                        return get(v + 1) - val;
-
-                    if (v == mv - 1)
-                        return val - get(v - 1);
-
-                    return (get(v + 1) - get(v - 1)) / 2;
-                };
-
                 Vec3 normal;
                 if (x == 0)
                 {

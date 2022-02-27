@@ -3,6 +3,7 @@
 #include <future>
 #include <vector>
 #include <memory>
+#include <cmath>
 #include "marchingCubesTables.hpp"
 
 namespace marching_cubes
@@ -46,20 +47,16 @@ namespace marching_cubes
     {
         using namespace _private;
 
-        // TODO: perform precondition check, we assume vertices is an m*n*k
-        auto m = voxels.size();
-        auto n = voxels[0].size();
-        auto k = voxels[0][0].size();
-
+        const auto max = std::array<int, 3>{voxels.size(), voxels[0].size(), voxels[0][0].size()};
         std::vector<std::future<Mesh<Vec3>>> futures;
-        futures.reserve(m - 1);
-        for (auto x = 0; x < m - 1; x++)
+        futures.reserve(max[0] - 1);
+        for (auto x = 0; x < max[0] - 1; x++)
         {
             auto compute = [&](int x)
             {
                 Mesh<Vec3> mesh;
-                for (auto y = 0; y < n - 1; y++)
-                    for (auto z = 0; z < k - 1; z++)
+                for (auto y = 0; y < max[1] - 1; y++)
+                    for (auto z = 0; z < max[2] - 1; z++)
                         calc_voxel(voxels, isovalue, {x, y, z}, mesh);
 
                 return std::move(mesh);
@@ -133,14 +130,44 @@ namespace marching_cubes
                 };
 
                 Vec3 normal;
-                normal[0] = getNorm(x, voxels.size(), val, [=](int x)
-                                    { return voxels[x][y][z]; });
+                if (x == 0)
+                {
+                    normal[0] = voxels[x + 1][y][z] - val;
+                }
+                else if (x == voxels.size() - 1)
+                {
+                    normal[0] = val - voxels[x - 1][y][z];
+                }
+                else
+                {
+                    normal[0] = (voxels[x + 1][y][z] - voxels[x - 1][y][z]) / 2;
+                }
 
-                normal[1] = getNorm(y, voxels[x].size(), val, [=](int y)
-                                    { return voxels[x][y][z]; });
+                if (y == 0)
+                {
+                    normal[1] = voxels[x][y + 1][z] - val;
+                }
+                else if (y == voxels[x].size() - 1)
+                {
+                    normal[1] = val - voxels[x][y - 1][z];
+                }
+                else
+                {
+                    normal[1] = (voxels[x][y + 1][z] - voxels[x][y - 1][z]) / 2;
+                }
 
-                normal[2] = getNorm(z, voxels[x][y].size(), val, [=](int z)
-                                    { return voxels[x][y][z]; });
+                if (z == 0)
+                {
+                    normal[2] = voxels[x][y][z + 1] - val;
+                }
+                else if (z == voxels[x][y].size() - 1)
+                {
+                    normal[2] = val - voxels[x][y][z - 1];
+                }
+                else
+                {
+                    normal[2] = (voxels[x][y][z + 1] - voxels[x][y][z - 1]) / 2;
+                }
 
                 v[i] = Vertice<Vec3>{
                     val : val,

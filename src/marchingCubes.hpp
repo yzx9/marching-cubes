@@ -5,21 +5,87 @@
 
 namespace marching_cubes
 {
+    using Voxel = std::vector<std::vector<std::vector<float>>>;
+
+    template <typename Point>
+    using Triangle = std::array<Point, 3>;
+
+    template <typename Point>
+    using Mesh = std::vector<Triangle<Point>>;
+
     namespace _private
     {
-        float interpolation(const float &isovalue, float f1, float f2, float x1, float x2)
+        using Pos = std::array<int, 3>;
+
+        template <typename Vec3>
+        void calc_voxel(const Voxel &vertices, float isovalue, const Pos &pos, Mesh<Vec3> &out);
+
+        template <typename Vec3>
+        std::array<Vec3, 12> calc_points(const std::array<float, 8> &vertices, int edge, float isovalue, const Pos &pos);
+
+        float interpolation(const float &isovalue, float f1, float f2, float x1, float x2);
+    }
+
+    template <typename Vec3>
+    Mesh<Vec3> extract(const Voxel &vertices, float isovalue)
+    {
+        using namespace _private;
+        using Triangle = std::array<Vec3, 3>;
+
+        // TODO: perform precondition check, we assume vertices is an m*n*k
+        auto m = vertices.size();
+        auto n = vertices[0].size();
+        auto k = vertices[0][0].size();
+
+        std::vector<Triangle> triangles;
+        for (auto x = 0; x < m - 1; x++)
         {
-            return x1 + (x2 - x1) * (isovalue - f1) / (f2 - f1);
+            for (auto y = 0; y < n - 1; y++)
+            {
+                for (auto z = 0; z < k - 1; z++)
+                {
+                    calc_voxel(vertices, isovalue, {x, y, z}, triangles);
+                }
+            }
+        }
+
+        return std::move(triangles);
+    }
+
+    namespace _private
+    {
+        template <typename Vec3>
+        void calc_voxel(const Voxel &vertices, float isovalue, const Pos &pos, Mesh<Vec3> &out)
+        {
+            std::array<float, 8> v;
+            for (auto i = 0; i < 8; i++)
+            {
+                auto &[a, b, c] = vertice_offsets[i];
+                v[i] = vertices[std::get<0>(pos) + a][std::get<1>(pos) + b][std::get<2>(pos) + c];
+            }
+
+            auto index = 0;
+            for (auto i = 0; i < 8; i++)
+                index |= (v[i] < isovalue ? 0x01 : 0x00) << i;
+
+            const auto edge = edge_table[index];
+            if (edge == 0)
+                return;
+
+            const auto &triangle = triangle_table[index];
+            auto points = calc_points<Vec3>(v, edge, isovalue, pos);
+            for (auto i = 0; triangle[i] != -1; i += 3)
+            {
+                out.emplace_back(Triangle<Vec3>{points[triangle[i + 0]],
+                                                points[triangle[i + 1]],
+                                                points[triangle[i + 2]]});
+            }
         }
 
         template <typename Vec3>
-        std::array<Vec3, 12> calc_points(const std::array<float, 8> &vertices, const int &edge, const float &isovalue,
-                                         const float &x, const float &y, const float &z)
+        std::array<Vec3, 12> calc_points(const std::array<float, 8> &vertices, int edge, float isovalue, const Pos &pos)
         {
-            using namespace _private;
-
             std::array<Vec3, 12> points;
-            const auto pos = std::array<float, 3>{x, y, z};
             for (auto i = 0; i < 12; i++)
             {
                 auto &[a, b] = edge_connection[i];
@@ -35,55 +101,10 @@ namespace marching_cubes
 
             return std::move(points);
         };
-    }
 
-    std::vector<std::array<std::array<float, 3>, 3>> extract(std::vector<std::vector<std::vector<float>>> vertices, float isovalue)
-    {
-        using namespace _private;
-
-        using Vec3 = std::array<float, 3>;
-        using Triangle = std::array<Vec3, 3>;
-
-        // TODO: perform precondition check, we assume vertices is an m*n*k
-        auto m = vertices.size();
-        auto n = vertices[0].size();
-        auto k = vertices[0][0].size();
-
-        std::vector<Triangle> triangles;
-        for (auto x = 0; x < m - 1; x++)
+        float interpolation(const float &isovalue, float f1, float f2, float x1, float x2)
         {
-            for (auto y = 0; y < n - 1; y++)
-            {
-                for (auto z = 0; z < k - 1; z++)
-                {
-                    std::array<float, 8> v;
-                    for (auto i = 0; i < 8; i++)
-                    {
-                        auto &[a, b, c] = vertice_offsets[i];
-                        v[i] = vertices[x + a][y + b][z + c];
-                    }
-
-                    auto index = 0;
-                    for (auto i = 0; i < 8; i++)
-                        index |= (v[i] < isovalue ? 0x01 : 0x00) << i;
-
-                    const auto edge = edge_table[index];
-                    if (edge == 0)
-                        continue;
-
-                    const auto &triangle = triangle_table[index];
-                    auto points = calc_points<Vec3>(v, edge, isovalue, x, y, z);
-                    for (auto i = 0; triangle[i] != -1; i += 3)
-                    {
-                        triangles.emplace_back(Triangle{
-                            points[triangle[i + 0]],
-                            points[triangle[i + 1]],
-                            points[triangle[i + 2]]});
-                    }
-                }
-            }
+            return x1 + (x2 - x1) * (isovalue - f1) / (f2 - f1);
         }
-
-        return std::move(triangles);
     }
 }

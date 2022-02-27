@@ -9,7 +9,9 @@ int main()
     auto filePath = std::filesystem::current_path().append(img);
     auto imgs = img_tiff::read(filePath);
     auto vertices = img_tiff::normalize<short, float, 255>(imgs);
-    auto triangles = marching_cubes::extract(vertices, 0.5);
+
+    auto triangles = marching_cubes::extract<std::array<float, 3>>(vertices, 0.5);
     std::cout << triangles.size() << std::endl;
+
     return 0;
 }

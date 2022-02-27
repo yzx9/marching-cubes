@@ -1,5 +1,6 @@
 #include <array>
 #include <functional>
+#include <future>
 #include <vector>
 #include <memory>
 #include "marchingCubesTables.hpp"
@@ -50,16 +51,32 @@ namespace marching_cubes
         auto n = voxels[0].size();
         auto k = voxels[0][0].size();
 
-        Mesh<Vec3> mesh;
+        std::vector<std::future<Mesh<Vec3>>> futures;
+        futures.reserve(m - 1);
         for (auto x = 0; x < m - 1; x++)
         {
-            for (auto y = 0; y < n - 1; y++)
+            auto compute = [&](int x)
             {
-                for (auto z = 0; z < k - 1; z++)
-                {
-                    calc_voxel(voxels, isovalue, {x, y, z}, mesh);
-                }
-            }
+                Mesh<Vec3> mesh;
+                for (auto y = 0; y < n - 1; y++)
+                    for (auto z = 0; z < k - 1; z++)
+                        calc_voxel(voxels, isovalue, {x, y, z}, mesh);
+
+                return std::move(mesh);
+            };
+
+            futures.emplace_back(std::async(compute, x));
+        }
+
+        for (auto &fut : futures)
+            fut.wait();
+
+        Mesh<Vec3> mesh;
+        for (auto &fut : futures)
+        {
+            auto submesh = fut.get();
+            for (auto &tri : submesh)
+                mesh.emplace_back(tri);
         }
 
         return std::move(mesh);
@@ -109,7 +126,7 @@ namespace marching_cubes
                     if (v == 0)
                         return get(v + 1) - val;
 
-                    if (v == mv)
+                    if (v == mv - 1)
                         return val - get(v - 1);
 
                     return (get(v + 1) - get(v - 1)) / 2;

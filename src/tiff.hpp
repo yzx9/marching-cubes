@@ -9,11 +9,12 @@ namespace img_tiff
     std::vector<std::vector<std::vector<short>>> read(std::string filePath)
     {
         using Row = std::vector<short>;
+        using Img = std::vector<Row>;
 
-        TIFF *tif = TIFFOpen(filePath.c_str(), "r");
+        auto tif = TIFFOpen(filePath.c_str(), "r");
         auto page = TIFFNumberOfDirectories(tif);
 
-        std::vector<std::vector<Row>> imgs;
+        std::vector<Img> imgs;
         for (auto i = 0; i < page; i++)
         {
             TIFFSetDirectory(tif, i);
@@ -27,7 +28,7 @@ namespace img_tiff
             auto tmp = new uint32[w * h];
             TIFFReadRGBAImage(tif, w, h, tmp, 0);
             uint32 *pRow = tmp + (h - 1) * w;
-            std::vector<Row> img;
+            Img img;
             for (int i = 0; i < h; i++)
             {
                 Row row;
@@ -46,6 +47,6 @@ namespace img_tiff
         }
 
         TIFFClose(tif);
-        return std::move(vec);
+        return std::move(imgs);
     }
 }

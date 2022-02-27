@@ -41,6 +41,9 @@ namespace marching_cubes
         std::array<Vertice<Vec3>, 12> calc_points(const Vertices<Vec3> &vertices, int edge, float isovalue, const Pos &pos);
 
         inline float interpolation(float isovalue, float f1, float f2, float x1, float x2);
+
+        template <typename Vec3>
+        inline void normalize(Vec3 &vec);
     }
 
     template <typename Vec3>
@@ -170,9 +173,7 @@ namespace marching_cubes
                     normal[2] = (voxels[x][y][z + 1] - voxels[x][y][z - 1]) / 2;
                 }
 
-                auto norm = std::sqrt(normal[0] * normal[0] + normal[1] * normal[1] + normal[2] * normal[2]);
-                for (int i = 0; i < 3; i++)
-                    normal[i] /= norm;
+                normalize(normal);
 
                 v[i] = Vertice<Vec3>{
                     val : val,
@@ -202,6 +203,7 @@ namespace marching_cubes
                         coord[j] = interpolation(isovalue, va.coord[j], vb.coord[j], pos[j], pos[j] + 1);
                         normal[j] = interpolation(isovalue, va.normal[j], vb.normal[j], pos[j], pos[j] + 1);
                     }
+                    normalize(normal);
 
                     points[i] = Vertice<Vec3>{
                         coord : coord,
@@ -216,6 +218,14 @@ namespace marching_cubes
         inline float interpolation(float isovalue, float f1, float f2, float x1, float x2)
         {
             return x1 + (x2 - x1) * (isovalue - f1) / (f2 - f1);
+        }
+
+        template <typename Vec3>
+        inline void normalize(Vec3 &vec)
+        {
+            auto norm = std::sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]);
+            for (int i = 0; i < 3; i++)
+                vec[i] /= norm;
         }
     }
 }

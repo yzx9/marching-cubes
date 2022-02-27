@@ -1,7 +1,7 @@
 #include <array>
 #include <vector>
 #include <memory>
-#include "marchingCubesStateTables.hpp"
+#include "marchingCubesTables.hpp"
 
 namespace marching_cubes
 {

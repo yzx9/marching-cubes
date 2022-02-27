@@ -9,7 +9,7 @@ add_executable(tiff_marching_cube
     src/main.cpp
     src/tiff.hpp
     src/marchingCubes.hpp
-    src/marchingCubesStateTables.hpp
+    src/marchingCubesTables.hpp
 )
 
 target_link_libraries(tiff_marching_cube TIFF::TIFF)

@@ -23,7 +23,7 @@ namespace marching_cubes
         template <typename Vec3>
         std::array<Vec3, 12> calc_points(const std::array<float, 8> &vertices, int edge, float isovalue, const Pos &pos);
 
-        float interpolation(const float &isovalue, float f1, float f2, float x1, float x2);
+        inline float interpolation(float isovalue, float f1, float f2, float x1, float x2);
     }
 
     template <typename Vec3>
@@ -60,7 +60,7 @@ namespace marching_cubes
             std::array<float, 8> v;
             for (auto i = 0; i < 8; i++)
             {
-                auto &[a, b, c] = vertice_offsets[i];
+                const auto &[a, b, c] = vertice_offsets[i];
                 v[i] = vertices[std::get<0>(pos) + a][std::get<1>(pos) + b][std::get<2>(pos) + c];
             }
 
@@ -102,7 +102,7 @@ namespace marching_cubes
             return std::move(points);
         };
 
-        float interpolation(const float &isovalue, float f1, float f2, float x1, float x2)
+        inline float interpolation(float isovalue, float f1, float f2, float x1, float x2)
         {
             return x1 + (x2 - x1) * (isovalue - f1) / (f2 - f1);
         }

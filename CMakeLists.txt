@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 3.13)
-project(tiff_marching_cube)
+project(marching_cubes)
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -O3 -Wall")
+# set(CMAKE_CXX_FLAGS "$ENV{CXXFLAGS} -O3 -Wall")
 
 find_package(TIFF)
 
-add_executable(tiff_marching_cube
+add_executable(marching_cubes
     src/main.cpp
     src/marchingCubes.hpp
     src/marchingCubesTables.hpp
@@ -15,4 +15,4 @@ add_executable(tiff_marching_cube
     src/obj.hpp
 )
 
-target_link_libraries(tiff_marching_cube TIFF::TIFF)
+target_link_libraries(marching_cubes TIFF::TIFF)

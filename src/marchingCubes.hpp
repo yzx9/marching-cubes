@@ -32,13 +32,13 @@ namespace marching_cubes
     namespace _private
     {
         template <typename Vec3>
-        Vertices<Vec3> get_vertices(const Voxel &vertices, const Pos &pos);
-
-        template <typename Vec3>
         void calc_voxel(const Voxel &vertices, float isovalue, const Pos &pos, Mesh<Vec3> &out);
 
         template <typename Vec3>
-        std::array<Vertice<Vec3>, 12> calc_points(const Vertices<Vec3> &vertices, int edge, float isovalue, const Pos &pos);
+        Vertices<Vec3> get_vertices(const Voxel &vertices, const Pos &pos);
+
+        template <typename Vec3>
+        std::array<Vertice<Vec3>, 12> get_interpolation_points(const Vertices<Vec3> &vertices, int edge, float isovalue);
 
         inline float interpolation(float isovalue, float x1, float x2);
         inline float interpolation(float isovalue, float f1, float f2, float x1, float x2);
@@ -100,7 +100,7 @@ namespace marching_cubes
                 return;
 
             const auto &triangle = triangle_table[index];
-            auto points = calc_points(v, edge, isovalue, pos);
+            auto points = get_interpolation_points(v, edge, isovalue);
             for (auto i = 0; triangle[i] != -1; i += 3)
             {
                 out.emplace_back(Triangle<Vec3>{
@@ -122,6 +122,7 @@ namespace marching_cubes
                 auto y = std::get<1>(pos) + oy;
                 auto z = std::get<2>(pos) + oz;
                 auto val = voxels[x][y][z];
+                auto coord = Vec3{x, y, z};
 
                 Vec3 normal;
                 if (x == 0)
@@ -167,6 +168,7 @@ namespace marching_cubes
 
                 v[i] = Vertice<Vec3>{
                     val : val,
+                    coord : coord,
                     normal : normal
                 };
             }
@@ -175,7 +177,7 @@ namespace marching_cubes
         }
 
         template <typename Vec3>
-        std::array<Vertice<Vec3>, 12> calc_points(const Vertices<Vec3> &vertices, int edge, float isovalue, const Pos &pos)
+        std::array<Vertice<Vec3>, 12> get_interpolation_points(const Vertices<Vec3> &vertices, int edge, float isovalue)
         {
             std::array<Vertice<Vec3>, 12> points;
             for (auto i = 0; i < 12; i++)
@@ -190,11 +192,11 @@ namespace marching_cubes
                     Vec3 normal;
                     for (auto j = 0; j < 3; j++)
                     {
-                        coord[j] = interpolation(isovalue, va.val, vb.val, pos[j], pos[j] + 1);
+                        coord[j] = interpolation(isovalue, va.val, vb.val, va.coord[j], vb.coord[j]);
                         normal[j] = interpolation(isovalue, va.normal[j], vb.normal[j]);
                     }
-                    normalize(normal);
 
+                    normalize(normal);
                     points[i] = Vertice<Vec3>{
                         coord : coord,
                         normal : normal

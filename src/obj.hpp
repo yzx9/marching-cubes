@@ -21,10 +21,6 @@ namespace obj
                        << " " << tri[i].coord[2] << std::endl;
 
         stream << std::endl
-               << "# List of vertex" << std::endl;
-        stream << "vt 0 1 " << std::endl;
-
-        stream << std::endl
                << "# List of normals" << std::endl;
         for (auto &tri : mesh)
             for (auto i = 0; i < 3; i++)
@@ -39,9 +35,9 @@ namespace obj
         {
             auto j = 3 * i;
             stream << "f"
-                   << " " << j + 0 << "/1/" << j + 0
-                   << " " << j + 1 << "/1/" << j + 1
-                   << " " << j + 2 << "/1/" << j + 2 << std::endl;
+                   << " " << j + 1 << "//" << j + 1
+                   << " " << j + 2 << "//" << j + 2
+                   << " " << j + 3 << "//" << j + 3 << std::endl;
         }
 
         stream.close();

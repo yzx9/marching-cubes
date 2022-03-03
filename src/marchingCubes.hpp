@@ -93,7 +93,7 @@ namespace marching_cubes
 
             auto index = 0;
             for (auto i = 0; i < 8; i++)
-                index |= (v[i].val < isovalue ? 0x01 : 0x00) << i;
+                index |= v[i].val < isovalue ? (0x01 << i) : 0x00;
 
             const auto edge = edge_table[index];
             if (edge == 0)
@@ -118,51 +118,28 @@ namespace marching_cubes
             for (auto i = 0; i < 8; i++)
             {
                 const auto &[ox, oy, oz] = vertice_offsets[i];
-                auto x = std::get<0>(pos) + ox;
-                auto y = std::get<1>(pos) + oy;
-                auto z = std::get<2>(pos) + oz;
-                auto val = voxels[x][y][z];
-                auto coord = Vec3{x, y, z};
+                const auto x = std::get<0>(pos) + ox;
+                const auto y = std::get<1>(pos) + oy;
+                const auto z = std::get<2>(pos) + oz;
+                const auto val = voxels[x][y][z];
+                const auto coord = Vec3{x, y, z};
 
                 Vec3 normal;
-                if (x == 0)
-                {
-                    normal[0] = voxels[x + 1][y][z] - val;
-                }
-                else if (x == voxels.size() - 1)
-                {
-                    normal[0] = val - voxels[x - 1][y][z];
-                }
-                else
-                {
-                    normal[0] = (voxels[x + 1][y][z] - voxels[x - 1][y][z]) / 2;
-                }
+                // TODO: following code like noodles
+                normal[0] = x == 0 ? voxels[x + 1][y][z] - val
+                            : x == voxels.size() - 1
+                                ? val - voxels[x - 1][y][z]
+                                : (voxels[x + 1][y][z] - voxels[x - 1][y][z]) / 2;
 
-                if (y == 0)
-                {
-                    normal[1] = voxels[x][y + 1][z] - val;
-                }
-                else if (y == voxels[x].size() - 1)
-                {
-                    normal[1] = val - voxels[x][y - 1][z];
-                }
-                else
-                {
-                    normal[1] = (voxels[x][y + 1][z] - voxels[x][y - 1][z]) / 2;
-                }
+                normal[1] = y == 0 ? voxels[x][y + 1][z] - val
+                            : y == voxels[x].size() - 1
+                                ? val - voxels[x][y - 1][z]
+                                : (voxels[x][y + 1][z] - voxels[x][y - 1][z]) / 2;
 
-                if (z == 0)
-                {
-                    normal[2] = voxels[x][y][z + 1] - val;
-                }
-                else if (z == voxels[x][y].size() - 1)
-                {
-                    normal[2] = val - voxels[x][y][z - 1];
-                }
-                else
-                {
-                    normal[2] = (voxels[x][y][z + 1] - voxels[x][y][z - 1]) / 2;
-                }
+                normal[2] = z == 0 ? voxels[x][y][z + 1] - val
+                            : z == voxels[x][y].size() - 1
+                                ? val - voxels[x][y][z - 1]
+                                : (voxels[x][y][z + 1] - voxels[x][y][z - 1]) / 2;
 
                 normalize(normal);
 
@@ -184,7 +161,7 @@ namespace marching_cubes
             {
                 if ((edge >> i) & 0x01)
                 {
-                    auto &[a, b] = edge_connection[i];
+                    const auto &[a, b] = edge_connection[i];
                     const auto &va = vertices[a];
                     const auto &vb = vertices[b];
 
@@ -198,6 +175,7 @@ namespace marching_cubes
 
                     normalize(normal);
                     points[i] = Vertice<Vec3>{
+                        val : isovalue,
                         coord : coord,
                         normal : normal
                     };
@@ -220,7 +198,7 @@ namespace marching_cubes
         template <typename Vec3>
         inline void normalize(Vec3 &vec)
         {
-            auto norm = std::sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]);
+            const auto norm = std::sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]);
             for (int i = 0; i < 3; i++)
                 vec[i] /= norm;
         }

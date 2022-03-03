@@ -7,7 +7,8 @@
 
 namespace img_tiff
 {
-    std::vector<std::vector<std::vector<short>>> read(std::string filePath)
+    template <typename T>
+    std::vector<std::vector<std::vector<T>>> read(std::string filePath)
     {
         using Row = std::vector<short>;
         using Img = std::vector<Row>;

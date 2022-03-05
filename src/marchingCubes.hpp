@@ -54,19 +54,15 @@ namespace marching_cubes
     template <typename T>
     Mesh<T> extract(const voxel::Voxel<T> &voxels, float isovalue)
     {
-        using namespace _private;
-
-        const auto max = std::array<int, 3>{voxels.size(), voxels[0].size(), voxels[0][0].size()};
         std::vector<std::future<Mesh<T>>> futures;
-        futures.reserve(max[0] - 1);
-        for (auto x = 0; x < max[0] - 1; x++)
+        for (auto x = 0; x < voxels.size() - 1; x++)
         {
             auto compute = [&](int x)
             {
                 Mesh<T> mesh;
-                for (auto y = 0; y < max[1] - 1; y++)
-                    for (auto z = 0; z < max[2] - 1; z++)
-                        calc_voxel<T>(voxels, isovalue, {x, y, z}, mesh);
+                for (auto y = 0; y < voxels[0].size() - 1; y++)
+                    for (auto z = 0; z < voxels[0][0].size() - 1; z++)
+                        _private::calc_voxel<T>(voxels, isovalue, {x, y, z}, mesh);
 
                 return std::move(mesh);
             };
@@ -74,16 +70,10 @@ namespace marching_cubes
             futures.emplace_back(std::async(compute, x));
         }
 
-        for (auto &fut : futures)
-            fut.wait();
-
         Mesh<T> mesh;
         for (auto &fut : futures)
-        {
-            auto submesh = fut.get();
-            for (auto &tri : submesh)
+            for (auto &tri : fut.get())
                 mesh.emplace_back(tri);
-        }
 
         return std::move(mesh);
     }

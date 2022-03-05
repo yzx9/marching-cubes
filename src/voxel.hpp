@@ -1,4 +1,6 @@
 #pragma once
+#include <cmath>
+#include <functional>
 #include <vector>
 #include <string>
 #include <memory>
@@ -13,28 +15,72 @@ namespace voxel
     namespace _private
     {
         template <typename T>
-        std::vector<std::vector<std::vector<T>>> read_tiff_imgs(std::string filePath);
+        Voxel<T> read_tiff_imgs(std::string filePath);
 
-        template <typename Tin, typename Tout>
-        std::vector<std::vector<std::vector<Tout>>> normalize(std::vector<std::vector<std::vector<Tin>>> imgs);
+        template <typename Tin, typename Tout, int Scale = std::numeric_limits<Tin>::max()>
+        Voxel<Tout> normalize(Voxel<Tin> imgs);
 
-        template <typename Tin, typename Tout, int Scale>
-        std::vector<std::vector<std::vector<Tout>>> normalize(std::vector<std::vector<std::vector<Tin>>> imgs);
+        template <typename T, int Size>
+        constexpr std::array<T, Size> generate_gaussian_vector(double sigma);
     }
 
     template <typename T>
-    std::vector<std::vector<std::vector<T>>> read_from_tiff(std::string filePath)
+    Voxel<T> read_from_tiff(std::string filePath)
     {
         using namespace _private;
         auto imgs = read_tiff_imgs<uint8>(filePath);
-        auto voxels = normalize<uint8, T>(imgs);
-        return std::move(voxels);
+        return normalize<uint8, T>(imgs);
+    }
+
+    template <typename T, int Size>
+    Voxel<T> smooth(const Voxel<T> &voxels)
+    {
+        const auto vec = _private::generate_gaussian_vector<T, Size>(0.8);
+
+        // Sperate gaussian filter
+        Voxel<T> src;
+        Voxel<T> dst = voxels;
+        for (int channel = 0; channel < 3; channel++)
+        {
+            src = dst;
+            for (int i = 0; i < voxels.size() - Size; i++)
+            {
+                for (int j = 0; j < voxels[0].size() - Size; j++)
+                {
+                    for (int k = 0; k < voxels[0][0].size() - Size; k++)
+                    {
+                        T sum = 0;
+                        for (int t = 0; t < Size; t++)
+                        {
+                            T val;
+                            if (channel == 0)
+                                val = src[i + t][j][k];
+                            else if (channel == 1)
+                                val = src[i][j + t][k];
+                            else if (channel == 2)
+                                val = src[i][j][k + t];
+
+                            sum += vec[t] * val; // x
+                        }
+
+                        if (sum < 0)
+                            sum = static_cast<T>(0);
+                        else if (sum > 1)
+                            sum = static_cast<T>(1);
+
+                        dst[i][j][k] = sum;
+                    }
+                }
+            }
+        }
+
+        return dst;
     }
 
     namespace _private
     {
         template <typename T>
-        std::vector<std::vector<std::vector<T>>> read_tiff_imgs(std::string filePath)
+        Voxel<T> read_tiff_imgs(std::string filePath)
         {
             using Row = std::vector<T>;
             using Img = std::vector<Row>;
@@ -79,9 +125,9 @@ namespace voxel
         }
 
         template <typename Tin, typename Tout, int Scale>
-        std::vector<std::vector<std::vector<Tout>>> normalize(std::vector<std::vector<std::vector<Tin>>> imgs)
+        Voxel<Tout> normalize(Voxel<Tin> imgs)
         {
-            std::vector<std::vector<std::vector<Tout>>> newImgs;
+            Voxel<Tout> newImgs;
             newImgs.reserve(imgs.size());
             for (auto &img : imgs)
             {
@@ -103,11 +149,25 @@ namespace voxel
             return std::move(newImgs);
         }
 
-        template <typename Tin, typename Tout>
-        std::vector<std::vector<std::vector<Tout>>> normalize(std::vector<std::vector<std::vector<Tin>>> imgs)
+        template <typename T, int Size>
+        constexpr std::array<T, Size> generate_gaussian_vector(double sigma)
         {
-            constexpr auto max = std::numeric_limits<Tin>::max();
-            return std::move(normalize<Tin, Tout, max>(imgs));
+            std::array<T, Size> vec;
+            double sum = 0;
+            int origin = Size / 2;
+            for (int i = 0; i < Size; i++)
+            {
+                // ignore coefficient
+                T g = std::exp(-(i - origin) * (i - origin) / (2 * sigma * sigma));
+                sum += g;
+                vec[i] = g;
+            }
+
+            // normalize
+            for (int i = 0; i < Size; i++)
+                vec[i] /= sum;
+
+            return vec;
         }
     }
 }

@@ -11,7 +11,7 @@ add_executable(marching_cubes
     src/main.cpp
     src/marchingCubes.hpp
     src/marchingCubesTables.hpp
-    src/tiff.hpp
+    src/voxel.hpp
     src/obj.hpp
 )
 

@@ -2,7 +2,7 @@
 #include <iostream>
 #include <filesystem>
 #include "marchingCubes.hpp"
-#include "tiff.hpp"
+#include "voxel.hpp"
 #include "obj.hpp"
 
 int main()
@@ -12,8 +12,7 @@ int main()
     constexpr auto obj = "../tmp/seg_ImgSoma_17302_00020-x_14992.3_y_21970.3_z_4344.8.obj";
 
     auto imgFilePath = std::filesystem::current_path().append(img);
-    auto imgs = img_tiff::read<short>(imgFilePath);
-    auto voxels = img_tiff::normalize<short, float, 255>(imgs);
+    auto voxels = voxel::read_from_tiff<float>(imgFilePath);
 
     auto start = std::chrono::system_clock::now();
     auto mesh = marching_cubes::extract<Vec3>(voxels, 0.5);

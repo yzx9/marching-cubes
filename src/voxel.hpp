@@ -7,6 +7,9 @@
 
 namespace voxel
 {
+    template <typename T>
+    using Voxel = std::vector<std::vector<std::vector<T>>>;
+
     namespace _private
     {
         template <typename T>

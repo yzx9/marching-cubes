@@ -7,7 +7,6 @@
 
 int main()
 {
-    using Vec3 = std::array<float, 3>;
     constexpr auto img = "../data/seg_ImgSoma_17302_00020-x_14992.3_y_21970.3_z_4344.8.tiff";
     constexpr auto obj = "../tmp/seg_ImgSoma_17302_00020-x_14992.3_y_21970.3_z_4344.8.obj";
 
@@ -15,7 +14,7 @@ int main()
     auto voxels = voxel::read_from_tiff<float>(imgFilePath);
 
     auto start = std::chrono::system_clock::now();
-    auto mesh = marching_cubes::extract<Vec3>(voxels, 0.5);
+    auto mesh = marching_cubes::extract<float>(voxels, 0.5);
     auto stop = std::chrono::system_clock::now();
 
     std::cout << "Extract mesh complete: \n";
@@ -24,7 +23,7 @@ int main()
     std::cout << "          : " << std::chrono::duration_cast<std::chrono::seconds>(stop - start).count() << " seconds\n";
 
     auto objFilePath = std::filesystem::current_path().append(obj);
-    obj::save<Vec3>(objFilePath, mesh);
+    obj::save<float>(objFilePath, mesh);
 
     return 0;
 }

@@ -6,63 +6,67 @@
 #include <memory>
 #include <cmath>
 #include "marchingCubesTables.hpp"
+#include "voxel.hpp"
 
 namespace marching_cubes
 {
-    using Pos = std::array<int, 3>;
-    using Voxel = std::vector<std::vector<std::vector<float>>>;
+    template <typename T>
+    using Vec3 = std::array<T, 3>;
 
-    template <typename Vec3>
+    template <typename T>
     struct Vertice
     {
         float val;
-        Vec3 coord;
-        Vec3 normal;
+        Vec3<T> coord;
+        Vec3<T> normal;
     };
 
-    template <typename Vec3>
-    using Vertices = std::array<Vertice<Vec3>, 8>;
+    template <typename T>
+    using Vertices = std::array<Vertice<T>, 8>;
 
-    template <typename Vec3>
-    using Triangle = std::array<Vertice<Vec3>, 3>;
+    template <typename T>
+    using Triangle = Vec3<Vertice<T>>;
 
-    template <typename Vec3>
-    using Mesh = std::vector<Triangle<Vec3>>;
+    template <typename T>
+    using Mesh = std::vector<Triangle<T>>;
 
     namespace _private
     {
-        template <typename Vec3>
-        void calc_voxel(const Voxel &vertices, float isovalue, const Pos &pos, Mesh<Vec3> &out);
+        template <typename T>
+        void calc_voxel(const voxel::Voxel<T> &vertices, float isovalue, const Vec3<int> &pos, Mesh<T> &out);
 
-        template <typename Vec3>
-        Vertices<Vec3> get_vertices(const Voxel &vertices, const Pos &pos);
+        template <typename T>
+        Vertices<T> get_vertices(const voxel::Voxel<T> &vertices, const Vec3<int> &pos);
 
-        template <typename Vec3>
-        std::array<Vertice<Vec3>, 12> get_interpolation_points(const Vertices<Vec3> &vertices, int edge, float isovalue);
+        template <typename T>
+        std::array<Vertice<T>, 12> get_interpolation_points(const Vertices<T> &vertices, int edge, float isovalue);
 
-        inline float interpolation(float isovalue, float x1, float x2);
-        inline float interpolation(float isovalue, float f1, float f2, float x1, float x2);
+        template <typename T>
+        inline T interpolation(T isovalue, T x1, T x2);
 
-        template <typename Vec3>
-        inline void normalize(Vec3 &vec);
+        template <typename T>
+        inline T interpolation(T isovalue, T f1, T f2, T x1, T x2);
+
+        template <typename T>
+        inline void normalize(Vec3<T> &vec);
     }
 
-    template <typename Vec3>
-    Mesh<Vec3> extract(const Voxel &voxels, float isovalue)
+    template <typename T>
+    Mesh<T> extract(const voxel::Voxel<T> &voxels, float isovalue)
     {
         using namespace _private;
 
         const auto max = std::array<int, 3>{voxels.size(), voxels[0].size(), voxels[0][0].size()};
-        std::vector<std::future<Mesh<Vec3>>> futures;
+        std::vector<std::future<Mesh<T>>> futures;
         futures.reserve(max[0] - 1);
         for (auto x = 0; x < max[0] - 1; x++)
         {
             auto compute = [&](int x)
             {
-                Mesh<Vec3> mesh;
+                Mesh<T> mesh;
                 for (auto y = 0; y < max[1] - 1; y++)
                     for (auto z = 0; z < max[2] - 1; z++)
-                        calc_voxel(voxels, isovalue, {x, y, z}, mesh);
+                        calc_voxel<T>(voxels, isovalue, {x, y, z}, mesh);
 
                 return std::move(mesh);
             };
@@ -73,7 +77,7 @@ namespace marching_cubes
         for (auto &fut : futures)
             fut.wait();
 
-        Mesh<Vec3> mesh;
+        Mesh<T> mesh;
         for (auto &fut : futures)
         {
             auto submesh = fut.get();
@@ -86,10 +90,10 @@ namespace marching_cubes
 
     namespace _private
     {
-        template <typename Vec3>
-        void calc_voxel(const Voxel &voxels, float isovalue, const Pos &pos, Mesh<Vec3> &out)
+        template <typename T>
+        void calc_voxel(const voxel::Voxel<T> &voxels, float isovalue, const Vec3<int> &pos, Mesh<T> &out)
         {
-            auto v = get_vertices<Vec3>(voxels, pos);
+            auto v = get_vertices<T>(voxels, pos);
 
             auto index = 0;
             for (auto i = 0; i < 8; i++)
@@ -100,10 +104,10 @@ namespace marching_cubes
                 return;
 
             const auto &triangle = triangle_table[index];
-            auto points = get_interpolation_points(v, edge, isovalue);
+            auto points = get_interpolation_points<T>(v, edge, isovalue);
             for (auto i = 0; triangle[i] != -1; i += 3)
             {
-                out.emplace_back(Triangle<Vec3>{
+                out.emplace_back(Triangle<T>{
                     points[triangle[i + 0]],
                     points[triangle[i + 1]],
                     points[triangle[i + 2]],
@@ -111,10 +115,10 @@ namespace marching_cubes
             }
         }
 
-        template <typename Vec3>
-        Vertices<Vec3> get_vertices(const Voxel &voxels, const Pos &pos)
+        template <typename T>
+        Vertices<T> get_vertices(const voxel::Voxel<T> &voxels, const Vec3<int> &pos)
         {
-            Vertices<Vec3> v;
+            Vertices<T> v;
             for (auto i = 0; i < 8; i++)
             {
                 const auto &[ox, oy, oz] = vertice_offsets[i];
@@ -122,9 +126,9 @@ namespace marching_cubes
                 const auto y = std::get<1>(pos) + oy;
                 const auto z = std::get<2>(pos) + oz;
                 const auto val = voxels[x][y][z];
-                const auto coord = Vec3{x, y, z};
+                const auto coord = Vec3<T>{x, y, z};
 
-                Vec3 normal;
+                Vec3<T> normal;
                 // TODO: following code like noodles
                 normal[0] = x == 0 ? voxels[x + 1][y][z] - val
                             : x == voxels.size() - 1
@@ -143,7 +147,7 @@ namespace marching_cubes
 
                 normalize(normal);
 
-                v[i] = Vertice<Vec3>{
+                v[i] = Vertice<T>{
                     val : val,
                     coord : coord,
                     normal : normal
@@ -153,10 +157,10 @@ namespace marching_cubes
             return v;
         }
 
-        template <typename Vec3>
-        std::array<Vertice<Vec3>, 12> get_interpolation_points(const Vertices<Vec3> &vertices, int edge, float isovalue)
+        template <typename T>
+        std::array<Vertice<T>, 12> get_interpolation_points(const Vertices<T> &vertices, int edge, float isovalue)
         {
-            std::array<Vertice<Vec3>, 12> points;
+            std::array<Vertice<T>, 12> points;
             for (auto i = 0; i < 12; i++)
             {
                 if ((edge >> i) & 0x01)
@@ -165,16 +169,16 @@ namespace marching_cubes
                     const auto &va = vertices[a];
                     const auto &vb = vertices[b];
 
-                    Vec3 coord;
-                    Vec3 normal;
+                    Vec3<T> coord;
+                    Vec3<T> normal;
                     for (auto j = 0; j < 3; j++)
                     {
-                        coord[j] = interpolation(isovalue, va.val, vb.val, va.coord[j], vb.coord[j]);
-                        normal[j] = interpolation(isovalue, va.normal[j], vb.normal[j]);
+                        coord[j] = interpolation<T>(isovalue, va.val, vb.val, va.coord[j], vb.coord[j]);
+                        normal[j] = interpolation<T>(isovalue, va.normal[j], vb.normal[j]);
                     }
 
                     normalize(normal);
-                    points[i] = Vertice<Vec3>{
+                    points[i] = Vertice<T>{
                         val : isovalue,
                         coord : coord,
                         normal : normal
@@ -185,18 +189,20 @@ namespace marching_cubes
             return std::move(points);
         };
 
-        inline float interpolation(float isovalue, float x1, float x2)
+        template <typename T>
+        inline T interpolation(T isovalue, T x1, T x2)
         {
             return x1 + (x2 - x1) * isovalue;
         }
 
-        inline float interpolation(float isovalue, float f1, float f2, float x1, float x2)
+        template <typename T>
+        inline T interpolation(T isovalue, T f1, T f2, T x1, T x2)
         {
             return x1 + (x2 - x1) * (isovalue - f1) / (f2 - f1);
         }
 
-        template <typename Vec3>
-        inline void normalize(Vec3 &vec)
+        template <typename T>
+        inline void normalize(Vec3<T> &vec)
         {
             const auto norm = std::sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]);
             for (int i = 0; i < 3; i++)

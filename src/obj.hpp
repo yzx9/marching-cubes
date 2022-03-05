@@ -6,8 +6,8 @@
 
 namespace obj
 {
-    template <typename Vec3>
-    void save(const std::string &filePath, const marching_cubes::Mesh<Vec3> &mesh)
+    template <typename T>
+    void save(const std::string &filePath, const marching_cubes::Mesh<T> &mesh)
     {
         std::ofstream stream;
         stream.open(filePath, std::ios::out);

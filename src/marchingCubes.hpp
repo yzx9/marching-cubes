@@ -33,10 +33,10 @@ namespace marching_cubes
     namespace _private
     {
         template <typename T>
-        void calc_voxel(const voxel::Voxel<T> &vertices, float isovalue, const Vec3<int> &pos, Mesh<T> &out);
+        void calc_voxel(const voxel::Voxels<T> &vertices, float isovalue, const Vec3<int> &pos, Mesh<T> &out);
 
         template <typename T>
-        Vertices<T> get_vertices(const voxel::Voxel<T> &vertices, const Vec3<int> &pos);
+        Vertices<T> get_vertices(const voxel::Voxels<T> &vertices, const Vec3<int> &pos);
 
         template <typename T>
         std::array<Vertice<T>, 12> get_interpolation_points(const Vertices<T> &vertices, int edge, float isovalue);
@@ -52,7 +52,7 @@ namespace marching_cubes
     }
 
     template <typename T>
-    Mesh<T> extract(const voxel::Voxel<T> &voxels, float isovalue)
+    Mesh<T> extract(const voxel::Voxels<T> &voxels, float isovalue)
     {
         std::vector<std::future<Mesh<T>>> futures;
         for (auto x = 0; x < voxels.size() - 1; x++)
@@ -81,7 +81,7 @@ namespace marching_cubes
     namespace _private
     {
         template <typename T>
-        void calc_voxel(const voxel::Voxel<T> &voxels, float isovalue, const Vec3<int> &pos, Mesh<T> &out)
+        void calc_voxel(const voxel::Voxels<T> &voxels, float isovalue, const Vec3<int> &pos, Mesh<T> &out)
         {
             auto v = get_vertices<T>(voxels, pos);
 
@@ -106,7 +106,7 @@ namespace marching_cubes
         }
 
         template <typename T>
-        Vertices<T> get_vertices(const voxel::Voxel<T> &voxels, const Vec3<int> &pos)
+        Vertices<T> get_vertices(const voxel::Voxels<T> &voxels, const Vec3<int> &pos)
         {
             Vertices<T> v;
             for (auto i = 0; i < 8; i++)

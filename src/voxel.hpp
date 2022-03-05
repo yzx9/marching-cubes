@@ -10,22 +10,22 @@
 namespace voxel
 {
     template <typename T>
-    using Voxel = std::vector<std::vector<std::vector<T>>>;
+    using Voxels = std::vector<std::vector<std::vector<T>>>;
 
     namespace _private
     {
         template <typename T>
-        Voxel<T> read_tiff_imgs(std::string filePath);
+        Voxels<T> read_tiff_imgs(std::string filePath);
 
         template <typename Tin, typename Tout, int Scale = std::numeric_limits<Tin>::max()>
-        Voxel<Tout> normalize(Voxel<Tin> imgs);
+        Voxels<Tout> normalize(Voxels<Tin> imgs);
 
         template <typename T, int Size>
         constexpr std::array<T, Size> generate_gaussian_vector(double sigma);
     }
 
     template <typename T>
-    Voxel<T> read_from_tiff(std::string filePath)
+    Voxels<T> read_from_tiff(std::string filePath)
     {
         using namespace _private;
         auto imgs = read_tiff_imgs<uint8>(filePath);
@@ -33,13 +33,13 @@ namespace voxel
     }
 
     template <typename T, int Size>
-    Voxel<T> smooth(const Voxel<T> &voxels)
+    Voxels<T> smooth(const Voxels<T> &voxels)
     {
         const auto vec = _private::generate_gaussian_vector<T, Size>(0.8);
 
         // Sperate gaussian filter
-        Voxel<T> src;
-        Voxel<T> dst = voxels;
+        Voxels<T> src;
+        Voxels<T> dst = voxels;
         for (int channel = 0; channel < 3; channel++)
         {
             src = dst;
@@ -80,7 +80,7 @@ namespace voxel
     namespace _private
     {
         template <typename T>
-        Voxel<T> read_tiff_imgs(std::string filePath)
+        Voxels<T> read_tiff_imgs(std::string filePath)
         {
             using Row = std::vector<T>;
             using Img = std::vector<Row>;
@@ -125,9 +125,9 @@ namespace voxel
         }
 
         template <typename Tin, typename Tout, int Scale>
-        Voxel<Tout> normalize(Voxel<Tin> imgs)
+        Voxels<Tout> normalize(Voxels<Tin> imgs)
         {
-            Voxel<Tout> newImgs;
+            Voxels<Tout> newImgs;
             newImgs.reserve(imgs.size());
             for (auto &img : imgs)
             {

@@ -1,9 +1,11 @@
 #include <chrono>
 #include <iostream>
 #include <filesystem>
+#include <functional>
 #include "marchingCubes.hpp"
 #include "voxel.hpp"
 #include "obj.hpp"
+#include "util.hpp"
 
 int main()
 {
@@ -13,14 +15,10 @@ int main()
     auto imgFilePath = std::filesystem::current_path().append(img);
     auto voxels = voxel::read_from_tiff<float>(imgFilePath);
 
-    auto start = std::chrono::system_clock::now();
-    auto mesh = marching_cubes::extract<float>(voxels, 0.5);
-    auto stop = std::chrono::system_clock::now();
-
-    std::cout << "Extract mesh complete: \n";
-    std::cout << "Time taken: " << std::chrono::duration_cast<std::chrono::hours>(stop - start).count() << " hours\n";
-    std::cout << "          : " << std::chrono::duration_cast<std::chrono::minutes>(stop - start).count() << " minutes\n";
-    std::cout << "          : " << std::chrono::duration_cast<std::chrono::seconds>(stop - start).count() << " seconds\n";
+    auto mesh = util::run_with_duration(
+        "Extract mesh", [](const auto &voxels)
+        { return marching_cubes::extract<float>(voxels, 0.5); },
+        voxels);
 
     auto objFilePath = std::filesystem::current_path().append(obj);
     obj::save<float>(objFilePath, mesh);

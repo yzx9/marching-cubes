@@ -13,6 +13,7 @@ add_executable(marching_cubes
     src/marchingCubesTables.hpp
     src/voxel.hpp
     src/obj.hpp
+    src/util.hpp
 )
 
 target_link_libraries(marching_cubes TIFF::TIFF)

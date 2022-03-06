@@ -23,10 +23,12 @@ namespace marching_cubes
     using Vertices = std::array<Vertice<T>, 8>;
 
     template <typename T>
-    using Triangle = Vec3<Vertice<T>>;
-
-    template <typename T>
-    using Mesh = std::vector<Triangle<T>>;
+    class Mesh
+    {
+    public:
+        std::vector<Vertice<T>> vertices;
+        std::vector<Vec3<int>> faces;
+    };
 
     namespace _private
     {
@@ -61,8 +63,15 @@ namespace marching_cubes
 
         Mesh<T> mesh;
         for (auto &fut : futures)
-            for (auto &tri : fut.get())
-                mesh.emplace_back(tri);
+        {
+            auto submesh = fut.get();
+            auto offset = mesh.vertices.size();
+            for (auto &v : submesh.vertices)
+                mesh.vertices.emplace_back(v);
+
+            for (auto &f : submesh.faces)
+                mesh.faces.emplace_back(Vec3<int>{offset + f[0], offset + f[1], offset + f[2]});
+        }
 
         return std::move(mesh);
     }
@@ -86,11 +95,11 @@ namespace marching_cubes
             auto points = get_interpolation_points<T>(v, edge, isovalue);
             for (auto i = 0; triangle[i] != -1; i += 3)
             {
-                out.emplace_back(Triangle<T>{
-                    points[triangle[i + 0]],
-                    points[triangle[i + 1]],
-                    points[triangle[i + 2]],
-                });
+                auto s = out.vertices.size();
+                out.vertices.emplace_back(points[triangle[i + 0]]);
+                out.vertices.emplace_back(points[triangle[i + 1]]);
+                out.vertices.emplace_back(points[triangle[i + 2]]);
+                out.faces.emplace_back(Vec3<int>{s, s + 1, s + 2});
             }
         }
 
@@ -104,7 +113,7 @@ namespace marching_cubes
                 const auto x = std::get<0>(pos) + ox;
                 const auto y = std::get<1>(pos) + oy;
                 const auto z = std::get<2>(pos) + oz;
-                const auto coord = Vec3<T>{x, y, z};
+                const auto coord = Vec3<T>{static_cast<T>(x), static_cast<T>(y), static_cast<T>(z)};
                 const auto val = voxels[x][y][z];
                 const auto normal = voxel::get_normal<T>(voxels, x, y, z);
 

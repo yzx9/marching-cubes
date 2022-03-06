@@ -13,32 +13,27 @@ namespace obj
         stream.open(filePath, std::ios::out);
 
         stream << "# List of vertices" << std::endl;
-        for (auto &tri : mesh)
-            for (auto i = 0; i < 3; i++)
-                stream << "v"
-                       << " " << tri[i].coord[0]
-                       << " " << tri[i].coord[1]
-                       << " " << tri[i].coord[2] << std::endl;
+        for (auto &v : mesh.vertices)
+            stream << "v"
+                   << " " << v.coord[0]
+                   << " " << v.coord[1]
+                   << " " << v.coord[2] << std::endl;
 
         stream << std::endl
                << "# List of normals" << std::endl;
-        for (auto &tri : mesh)
-            for (auto i = 0; i < 3; i++)
-                stream << "vn"
-                       << " " << tri[i].normal[0]
-                       << " " << tri[i].normal[1]
-                       << " " << tri[i].normal[2] << std::endl;
+        for (auto &v : mesh.vertices)
+            stream << "vn"
+                   << " " << v.normal[0]
+                   << " " << v.normal[1]
+                   << " " << v.normal[2] << std::endl;
 
         stream << std::endl
                << "# List of faces" << std::endl;
-        for (auto i = 0; i < mesh.size(); i++)
-        {
-            auto j = 3 * i;
+        for (auto &f : mesh.faces)
             stream << "f"
-                   << " " << j + 1 << "//" << j + 1
-                   << " " << j + 2 << "//" << j + 2
-                   << " " << j + 3 << "//" << j + 3 << std::endl;
-        }
+                   << " " << f[0] + 1 << "//" << f[0] + 1
+                   << " " << f[1] + 1 << "//" << f[1] + 1
+                   << " " << f[2] + 1 << "//" << f[2] + 1 << std::endl;
 
         stream.close();
     }

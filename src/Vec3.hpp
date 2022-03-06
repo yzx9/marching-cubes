@@ -34,4 +34,22 @@ namespace vec3
 
         return vec;
     }
+
+    template <typename T>
+    inline Vec3<T> min(const Vec3<T> &v1, const Vec3<T> &v2)
+    {
+        return Vec3<T>{
+            v1[0] < v2[0] ? v1[0] : v2[0],
+            v1[1] < v2[1] ? v1[1] : v2[1],
+            v1[2] < v2[2] ? v1[2] : v2[2]};
+    }
+
+    template <typename Tin, typename Tout>
+    inline Vec3<Tout> cast(const Vec3<Tin> &v)
+    {
+        return Vec3<Tout>{
+            static_cast<Tout>(v[0]),
+            static_cast<Tout>(v[1]),
+            static_cast<Tout>(v[2])};
+    }
 }

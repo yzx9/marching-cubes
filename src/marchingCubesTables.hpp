@@ -9,8 +9,26 @@ namespace marching_cubes
         constexpr std::array<std::tuple<int, int, int>, 8> vertice_offsets =
             {std::tuple{0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}};
 
-        constexpr std::array<std::tuple<int, int>, 12> edge_connection =
-            {std::tuple{0, 1}, {1, 2}, {2, 3}, {3, 0}, {4, 5}, {5, 6}, {6, 7}, {7, 4}, {0, 4}, {1, 5}, {2, 6}, {3, 7}};
+        enum class EdgeDir
+        {
+            x,
+            y,
+            z
+        };
+        constexpr std::array<std::tuple<int, int, EdgeDir>, 12> edge_connection =
+            {
+                std::tuple{0, 1, EdgeDir::x},
+                std::tuple{1, 2, EdgeDir::y},
+                std::tuple{2, 3, EdgeDir::x},
+                std::tuple{3, 0, EdgeDir::y},
+                std::tuple{4, 5, EdgeDir::x},
+                std::tuple{5, 6, EdgeDir::y},
+                std::tuple{6, 7, EdgeDir::x},
+                std::tuple{7, 4, EdgeDir::y},
+                std::tuple{0, 4, EdgeDir::z},
+                std::tuple{1, 5, EdgeDir::z},
+                std::tuple{2, 6, EdgeDir::z},
+                std::tuple{3, 7, EdgeDir::z}};
 
         const std::array<int, 256> edge_table =
             {

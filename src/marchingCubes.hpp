@@ -42,6 +42,7 @@ namespace marching_cubes
         const T isovalue;
         const voxel::Voxels<T> &voxels;
         Mesh<T> mesh;
+        std::vector<std::vector<std::vector<std::array<int, 3>>>> vertice_index;
 
         void calc_voxel(const Vec3<int> &pos);
         Vertices<T> get_vertices(const Vec3<int> &pos);
@@ -56,7 +57,24 @@ namespace marching_cubes
     }
 
     template <typename T>
-    MarchingCubes<T>::MarchingCubes(const voxel::Voxels<T> &voxels, T isovalue) : voxels(voxels), isovalue(isovalue) {}
+    MarchingCubes<T>::MarchingCubes(const voxel::Voxels<T> &voxels, T isovalue) : voxels(voxels), isovalue(isovalue)
+    {
+        // initial vertice, set -1 as default
+        for (auto x = 0; x < voxels.size() - 1; x++)
+        {
+            std::vector<std::vector<std::array<int, 3>>> vv;
+            for (auto y = 0; y < voxels[0].size() - 1; y++)
+            {
+                std::vector<std::array<int, 3>> v;
+                for (auto z = 0; z < voxels[0][0].size() - 1; z++)
+                    v.emplace_back(Vec3<int>{-1, -1, -1});
+
+                vv.emplace_back(v);
+            }
+
+            vertice_index.emplace_back(vv);
+        }
+    }
 
     template <typename T>
     Mesh<T> &MarchingCubes<T>::run()
@@ -83,12 +101,12 @@ namespace marching_cubes
             return;
 
         const auto &triangle = _private::triangle_table[index];
-        const auto edge_vertices = add_edge_vertices(v, edge);
+        const auto points = add_edge_vertices(v, edge);
         for (auto i = 0; triangle[i] != -1; i += 3)
             mesh.faces.emplace_back(Vec3<int>{
-                edge_vertices[triangle[i + 0]],
-                edge_vertices[triangle[i + 1]],
-                edge_vertices[triangle[i + 2]]});
+                points[triangle[i + 0]],
+                points[triangle[i + 1]],
+                points[triangle[i + 2]]});
     }
 
     template <typename T>
@@ -124,21 +142,28 @@ namespace marching_cubes
             if (((edge >> i) & 0x01) == 0x00)
                 continue;
 
-            const auto &[a, b] = _private::edge_connection[i];
+            const auto &[a, b, dir] = _private::edge_connection[i];
             const auto &va = vertices[a];
             const auto &vb = vertices[b];
 
-            auto coord = vec3::interpolation<T>(isovalue, va.val, vb.val, va.coord, vb.coord);
-            auto normal = vec3::interpolation<T>(isovalue, va.normal, vb.normal);
-            vec3::normalize(normal);
+            const auto min = vec3::min<T>(va.coord, vb.coord);
+            auto &index = vertice_index[min[0]][min[1]][min[2]][static_cast<int>(dir)];
+            if (index == -1)
+            {
+                auto coord = vec3::interpolation<T>(isovalue, va.val, vb.val, va.coord, vb.coord);
+                auto normal = vec3::interpolation<T>(isovalue, va.normal, vb.normal);
+                vec3::normalize(normal);
 
-            // TODO[feat]: support async
-            points[i] = mesh.vertices.size();
-            mesh.vertices.emplace_back(Vertice<T>{
-                val : isovalue,
-                coord : coord,
-                normal : normal
-            });
+                // TODO[feat]: support async
+                index = mesh.vertices.size();
+                mesh.vertices.emplace_back(Vertice<T>{
+                    val : isovalue,
+                    coord : coord,
+                    normal : normal
+                });
+            }
+
+            points[i] = index;
         }
 
         return std::move(points);

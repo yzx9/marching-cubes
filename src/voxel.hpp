@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include <cmath>
 #include <functional>
 #include <vector>
@@ -6,6 +7,7 @@
 #include <memory>
 #include <limits>
 #include <tiffio.h>
+#include "Vec3.hpp"
 
 namespace voxel
 {
@@ -27,9 +29,8 @@ namespace voxel
     template <typename T>
     Voxels<T> read_from_tiff(std::string filePath)
     {
-        using namespace _private;
-        auto imgs = read_tiff_imgs<uint8>(filePath);
-        return normalize<uint8, T>(imgs);
+        auto imgs = _private::read_tiff_imgs<uint8>(filePath);
+        return _private::normalize<uint8, T>(imgs);
     }
 
     template <typename T, int Size>
@@ -75,6 +76,31 @@ namespace voxel
         }
 
         return dst;
+    }
+
+    template <typename T>
+    Vec3<T> get_normal(const Voxels<T> &voxels, int x, int y, int z)
+    {
+        // TODO: following code like noodles
+        const auto val = voxels[x][y][z];
+        Vec3<T> normal;
+        normal[0] = x == 0 ? voxels[x + 1][y][z] - val
+                    : x == voxels.size() - 1
+                        ? val - voxels[x - 1][y][z]
+                        : (voxels[x + 1][y][z] - voxels[x - 1][y][z]) / 2;
+
+        normal[1] = y == 0 ? voxels[x][y + 1][z] - val
+                    : y == voxels[x].size() - 1
+                        ? val - voxels[x][y - 1][z]
+                        : (voxels[x][y + 1][z] - voxels[x][y - 1][z]) / 2;
+
+        normal[2] = z == 0 ? voxels[x][y][z + 1] - val
+                    : z == voxels[x][y].size() - 1
+                        ? val - voxels[x][y][z - 1]
+                        : (voxels[x][y][z + 1] - voxels[x][y][z - 1]) / 2;
+
+        vec3::normalize(normal);
+        return normal;
     }
 
     namespace _private
@@ -124,7 +150,7 @@ namespace voxel
             return std::move(imgs);
         }
 
-        template <typename Tin, typename Tout, int Scale>
+        template <typename Tin, typename Tout, int Scale = std::numeric_limits<Tin>::max()>
         Voxels<Tout> normalize(Voxels<Tin> imgs)
         {
             Voxels<Tout> newImgs;

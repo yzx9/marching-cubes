@@ -7,12 +7,10 @@
 #include <cmath>
 #include "marchingCubesTables.hpp"
 #include "voxel.hpp"
+#include "Vec3.hpp"
 
 namespace marching_cubes
 {
-    template <typename T>
-    using Vec3 = std::array<T, 3>;
-
     template <typename T>
     struct Vertice
     {
@@ -40,15 +38,6 @@ namespace marching_cubes
 
         template <typename T>
         std::array<Vertice<T>, 12> get_interpolation_points(const Vertices<T> &vertices, int edge, float isovalue);
-
-        template <typename T>
-        inline T interpolation(T isovalue, T x1, T x2);
-
-        template <typename T>
-        inline T interpolation(T isovalue, T f1, T f2, T x1, T x2);
-
-        template <typename T>
-        inline void normalize(Vec3<T> &vec);
     }
 
     template <typename T>
@@ -115,27 +104,9 @@ namespace marching_cubes
                 const auto x = std::get<0>(pos) + ox;
                 const auto y = std::get<1>(pos) + oy;
                 const auto z = std::get<2>(pos) + oz;
-                const auto val = voxels[x][y][z];
                 const auto coord = Vec3<T>{x, y, z};
-
-                Vec3<T> normal;
-                // TODO: following code like noodles
-                normal[0] = x == 0 ? voxels[x + 1][y][z] - val
-                            : x == voxels.size() - 1
-                                ? val - voxels[x - 1][y][z]
-                                : (voxels[x + 1][y][z] - voxels[x - 1][y][z]) / 2;
-
-                normal[1] = y == 0 ? voxels[x][y + 1][z] - val
-                            : y == voxels[x].size() - 1
-                                ? val - voxels[x][y - 1][z]
-                                : (voxels[x][y + 1][z] - voxels[x][y - 1][z]) / 2;
-
-                normal[2] = z == 0 ? voxels[x][y][z + 1] - val
-                            : z == voxels[x][y].size() - 1
-                                ? val - voxels[x][y][z - 1]
-                                : (voxels[x][y][z + 1] - voxels[x][y][z - 1]) / 2;
-
-                normalize(normal);
+                const auto val = voxels[x][y][z];
+                const auto normal = voxel::get_normal<T>(voxels, x, y, z);
 
                 v[i] = Vertice<T>{
                     val : val,
@@ -159,15 +130,10 @@ namespace marching_cubes
                     const auto &va = vertices[a];
                     const auto &vb = vertices[b];
 
-                    Vec3<T> coord;
-                    Vec3<T> normal;
-                    for (auto j = 0; j < 3; j++)
-                    {
-                        coord[j] = interpolation<T>(isovalue, va.val, vb.val, va.coord[j], vb.coord[j]);
-                        normal[j] = interpolation<T>(isovalue, va.normal[j], vb.normal[j]);
-                    }
+                    auto coord = vec3::interpolation<T>(isovalue, va.val, vb.val, va.coord, vb.coord);
+                    auto normal = vec3::interpolation<T>(isovalue, va.normal, vb.normal);
+                    vec3::normalize(normal);
 
-                    normalize(normal);
                     points[i] = Vertice<T>{
                         val : isovalue,
                         coord : coord,
@@ -178,25 +144,5 @@ namespace marching_cubes
 
             return std::move(points);
         };
-
-        template <typename T>
-        inline T interpolation(T isovalue, T x1, T x2)
-        {
-            return x1 + (x2 - x1) * isovalue;
-        }
-
-        template <typename T>
-        inline T interpolation(T isovalue, T f1, T f2, T x1, T x2)
-        {
-            return x1 + (x2 - x1) * (isovalue - f1) / (f2 - f1);
-        }
-
-        template <typename T>
-        inline void normalize(Vec3<T> &vec)
-        {
-            const auto norm = std::sqrt(vec[0] * vec[0] + vec[1] * vec[1] + vec[2] * vec[2]);
-            for (int i = 0; i < 3; i++)
-                vec[i] /= norm;
-        }
     }
 }

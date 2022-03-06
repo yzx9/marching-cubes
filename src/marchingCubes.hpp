@@ -11,6 +11,8 @@
 
 namespace marching_cubes
 {
+    using vec3::Vec3;
+
     template <typename T>
     struct Vertice
     {
@@ -39,7 +41,7 @@ namespace marching_cubes
         Vertices<T> get_vertices(const voxel::Voxels<T> &vertices, const Vec3<int> &pos);
 
         template <typename T>
-        std::array<Vertice<T>, 12> get_interpolation_points(const Vertices<T> &vertices, int edge, float isovalue);
+        std::array<int, 12> add_edge_points(const Vertices<T> &vertices, int edge, float isovalue, Mesh<T> &out);
     }
 
     template <typename T>
@@ -92,15 +94,12 @@ namespace marching_cubes
                 return;
 
             const auto &triangle = triangle_table[index];
-            auto points = get_interpolation_points<T>(v, edge, isovalue);
+            const auto points = add_edge_points<T>(v, edge, isovalue, out);
             for (auto i = 0; triangle[i] != -1; i += 3)
-            {
-                auto s = out.vertices.size();
-                out.vertices.emplace_back(points[triangle[i + 0]]);
-                out.vertices.emplace_back(points[triangle[i + 1]]);
-                out.vertices.emplace_back(points[triangle[i + 2]]);
-                out.faces.emplace_back(Vec3<int>{s, s + 1, s + 2});
-            }
+                out.faces.emplace_back(Vec3<int>{
+                    points[triangle[i + 0]],
+                    points[triangle[i + 1]],
+                    points[triangle[i + 2]]});
         }
 
         template <typename T>
@@ -128,9 +127,9 @@ namespace marching_cubes
         }
 
         template <typename T>
-        std::array<Vertice<T>, 12> get_interpolation_points(const Vertices<T> &vertices, int edge, float isovalue)
+        std::array<int, 12> add_edge_points(const Vertices<T> &vertices, int edge, float isovalue, Mesh<T> &out)
         {
-            std::array<Vertice<T>, 12> points;
+            std::array<int, 12> points;
             for (auto i = 0; i < 12; i++)
             {
                 if ((edge >> i) & 0x01)
@@ -143,11 +142,13 @@ namespace marching_cubes
                     auto normal = vec3::interpolation<T>(isovalue, va.normal, vb.normal);
                     vec3::normalize(normal);
 
-                    points[i] = Vertice<T>{
+                    // TODO[feat]: check if has been added
+                    points[i] = out.vertices.size();
+                    out.vertices.emplace_back(Vertice<T>{
                         val : isovalue,
                         coord : coord,
                         normal : normal
-                    };
+                    });
                 }
             }
 

@@ -11,6 +11,8 @@
 
 namespace voxel
 {
+    using vec3::Vec3;
+
     template <typename T>
     using Voxels = std::vector<std::vector<std::vector<T>>>;
 

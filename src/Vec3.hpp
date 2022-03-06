@@ -1,11 +1,11 @@
 #pragma once
 #include <array>
 
-template <typename T>
-using Vec3 = std::array<T, 3>;
-
 namespace vec3
 {
+    template <typename T>
+    using Vec3 = std::array<T, 3>;
+
     template <typename T>
     inline void normalize(std::array<T, 3> &vec)
     {

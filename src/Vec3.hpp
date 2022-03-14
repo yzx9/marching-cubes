@@ -15,7 +15,7 @@ namespace vec3
     }
 
     template <typename T>
-    inline Vec3<T> interpolation(T isovalue, const Vec3<T> &v1, const Vec3<T> &v2)
+    inline Vec3<T> interpolation(double isovalue, const Vec3<T> &v1, const Vec3<T> &v2)
     {
         Vec3<T> vec;
         for (auto i = 0; i < 3; i++)

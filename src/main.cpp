@@ -3,9 +3,10 @@
 #include <filesystem>
 #include <functional>
 #include "marchingCubes.hpp"
-#include "voxel.hpp"
 #include "obj.hpp"
+#include "quadricErrorMetrics.hpp"
 #include "util.hpp"
+#include "Voxel.hpp"
 
 int main()
 {
@@ -20,6 +21,10 @@ int main()
         "Extract mesh", [](const auto &voxels)
         { return marching_cubes::extract<float>(voxels, 0.5); },
         voxels);
+
+    util::run_with_duration(
+        "Simplify mesh", [&mesh]()
+        { return quadric_error_metrics::simplify(mesh, 0.5); });
 
     auto objFilePath = std::filesystem::current_path().append(obj);
     obj::save<float>(objFilePath, mesh);

@@ -5,28 +5,15 @@
 #include <vector>
 #include <memory>
 #include "marchingCubesTables.hpp"
-#include "voxel.hpp"
+#include "Voxel.hpp"
 #include "Vec3.hpp"
+#include "Mesh.hpp"
 
 namespace marching_cubes
 {
+    using mesh::Mesh;
+    using mesh::Vertice;
     using vec3::Vec3;
-
-    template <typename T>
-    struct Vertice
-    {
-        float val;
-        Vec3<T> coord;
-        Vec3<T> normal;
-    };
-
-    template <typename T>
-    class Mesh
-    {
-    public:
-        std::vector<Vertice<T>> vertices;
-        std::vector<Vec3<int>> faces;
-    };
 
     template <typename T>
     using Vertices = std::array<Vertice<T>, 8>;

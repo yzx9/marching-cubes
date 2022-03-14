@@ -7,7 +7,7 @@ namespace mesh
     using Face = Vec3<int>;
 
     template <typename T>
-    class Vertice
+    class Vertex
     {
     public:
         float val;
@@ -19,7 +19,7 @@ namespace mesh
     class Mesh
     {
     public:
-        std::vector<Vertice<T>> vertices;
+        std::vector<Vertex<T>> vertices;
         std::vector<Face> faces;
     };
 
@@ -29,11 +29,11 @@ namespace mesh
     }
 
     template <typename T>
-    Vertice<T> interpolation(double isovalue, const Vertice<T> &v1, const Vertice<T> v2)
+    Vertex<T> interpolation(double isovalue, const Vertex<T> &v1, const Vertex<T> v2)
     {
         auto normal = vec3::interpolation(isovalue, v1.normal, v2.normal);
         vec3::normalize(normal);
-        return Vertice<T>{
+        return Vertex<T>{
             val : v1.val * isovalue + v2.val * (1 - isovalue),
             coord : vec3::interpolation(isovalue, v1.coord, v2.coord),
             normal : normal,

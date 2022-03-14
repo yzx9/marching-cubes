@@ -6,7 +6,7 @@ namespace marching_cubes
 {
     namespace _private
     {
-        constexpr std::array<std::tuple<int, int, int>, 8> vertice_offsets =
+        constexpr std::array<std::tuple<int, int, int>, 8> vertex_offsets =
             {std::tuple{0, 0, 0}, {1, 0, 0}, {1, 1, 0}, {0, 1, 0}, {0, 0, 1}, {1, 0, 1}, {1, 1, 1}, {0, 1, 1}};
 
         enum class EdgeDir

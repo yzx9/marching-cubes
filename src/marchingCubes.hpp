@@ -12,11 +12,11 @@
 namespace marching_cubes
 {
     using mesh::Mesh;
-    using mesh::Vertice;
+    using mesh::Vertex;
     using vec3::Vec3;
 
     template <typename T>
-    using Vertices = std::array<Vertice<T>, 8>;
+    using Vertices = std::array<Vertex<T>, 8>;
 
     template <typename T>
     class MarchingCubes
@@ -29,7 +29,7 @@ namespace marching_cubes
         const T isovalue;
         const voxel::Voxels<T> &voxels;
         Mesh<T> mesh;
-        std::vector<std::vector<std::vector<std::array<int, 3>>>> vertice_index;
+        std::vector<std::vector<std::vector<std::array<int, 3>>>> vertex_index;
 
         void calc_voxel(const Vec3<int> &pos);
         Vertices<T> get_vertices(const Vec3<int> &pos);
@@ -46,7 +46,7 @@ namespace marching_cubes
     template <typename T>
     MarchingCubes<T>::MarchingCubes(const voxel::Voxels<T> &voxels, T isovalue) : voxels(voxels), isovalue(isovalue)
     {
-        // initial vertice, set -1 as default
+        // initial vertices, set -1 as default
         for (auto x = 0; x < voxels.size() - 1; x++)
         {
             std::vector<std::vector<std::array<int, 3>>> vv;
@@ -59,7 +59,7 @@ namespace marching_cubes
                 vv.emplace_back(v);
             }
 
-            vertice_index.emplace_back(vv);
+            vertex_index.emplace_back(vv);
         }
     }
 
@@ -102,7 +102,7 @@ namespace marching_cubes
         Vertices<T> v;
         for (auto i = 0; i < 8; i++)
         {
-            const auto &[ox, oy, oz] = _private::vertice_offsets[i];
+            const auto &[ox, oy, oz] = _private::vertex_offsets[i];
             const auto x = std::get<0>(pos) + ox;
             const auto y = std::get<1>(pos) + oy;
             const auto z = std::get<2>(pos) + oz;
@@ -110,7 +110,7 @@ namespace marching_cubes
             const auto val = voxels[x][y][z];
             const auto normal = voxel::get_normal<T>(voxels, x, y, z);
 
-            v[i] = Vertice<T>{
+            v[i] = Vertex<T>{
                 val : val,
                 coord : coord,
                 normal : normal
@@ -134,7 +134,7 @@ namespace marching_cubes
             const auto &vb = vertices[b];
 
             const auto min = vec3::min<T>(va.coord, vb.coord);
-            auto &index = vertice_index[min[0]][min[1]][min[2]][static_cast<int>(dir)];
+            auto &index = vertex_index[min[0]][min[1]][min[2]][static_cast<int>(dir)];
             if (index == -1)
             {
                 auto coord = vec3::interpolation<T>(isovalue, va.val, vb.val, va.coord, vb.coord);
@@ -143,7 +143,7 @@ namespace marching_cubes
 
                 // TODO[feat]: support async
                 index = mesh.vertices.size();
-                mesh.vertices.emplace_back(Vertice<T>{
+                mesh.vertices.emplace_back(Vertex<T>{
                     val : isovalue,
                     coord : coord,
                     normal : normal

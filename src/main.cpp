@@ -14,8 +14,14 @@ int main()
     constexpr auto obj = "../tmp/seg_ImgSoma_17302_00020-x_14992.3_y_21970.3_z_4344.8.obj";
 
     auto imgFilePath = std::filesystem::current_path().append(img);
-    auto voxelsRaw = voxel::read_from_tiff<float>(imgFilePath);
-    auto voxels = voxel::smooth<float, 5>(voxelsRaw);
+    auto voxelsRaw = util::run_with_duration(
+        "Read voxels", [&imgFilePath]()
+        { return voxel::read_from_tiff<float>(imgFilePath); });
+
+    auto voxels = util::run_with_duration(
+        "Smooth voxels", [](const auto &voxels)
+        { return voxel::smooth<float, 5>(voxels); },
+        voxelsRaw);
 
     auto mesh = util::run_with_duration(
         "Extract mesh", [](const auto &voxels)

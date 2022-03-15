@@ -11,13 +11,13 @@ namespace quadric_error_metrics
     using mesh::Mesh;
     constexpr int INVALID = -1;
 
-    struct PairContraction
+    struct Pair
     {
         int v1;
         int v2;
         int version; // invalid when any vertex change
         double quadricError;
-        bool operator<(const PairContraction &c) const { return quadricError > c.quadricError; }
+        bool operator<(const Pair &c) const { return quadricError > c.quadricError; }
     };
 
     template <typename T>
@@ -31,12 +31,12 @@ namespace quadric_error_metrics
         Mesh<T> &mesh;
         std::vector<std::vector<int>> vertexFaces;
         std::vector<int> vertexVersions;
-        std::priority_queue<PairContraction> edges;
+        std::priority_queue<Pair> pairs;
 
-        void build_edges();
-        void collapse_edge(const PairContraction &edge);
-        void update_quadric_error(PairContraction &edge);
-        mesh::Vertex<T> get_best_vertex(const PairContraction &edge);
+        void build_pairs();
+        void contract_pair(const Pair &pair);
+        void update_quadric_error(Pair &pair);
+        mesh::Vertex<T> get_best_vertex(const Pair &pair);
         void tidy_mesh();
     };
 
@@ -59,22 +59,22 @@ namespace quadric_error_metrics
             vertexVersions.emplace_back(0);
         }
 
-        build_edges();
+        build_pairs();
     }
 
     template <typename T>
     void QuadricErrorMetrics<T>::simplify(int simplifyN)
     {
-        while (simplifyN && !edges.empty())
+        while (simplifyN && !pairs.empty())
         {
-            auto e = edges.top();
-            edges.pop();
-            if (vertexVersions[e.v1] == INVALID ||
-                vertexVersions[e.v2] == INVALID ||
-                vertexVersions[e.v1] + vertexVersions[e.v2] != e.version)
+            auto p = pairs.top();
+            pairs.pop();
+            if (vertexVersions[p.v1] == INVALID ||
+                vertexVersions[p.v2] == INVALID ||
+                vertexVersions[p.v1] + vertexVersions[p.v2] != p.version)
                 continue;
 
-            collapse_edge(e);
+            contract_pair(p);
             simplifyN--;
         }
 
@@ -82,10 +82,10 @@ namespace quadric_error_metrics
     };
 
     template <typename T>
-    void QuadricErrorMetrics<T>::build_edges()
+    void QuadricErrorMetrics<T>::build_pairs()
     {
         const int n = mesh.faces.size() * 3;
-        std::unordered_map<long, PairContraction> edgeMap;
+        std::unordered_map<long, Pair> pairMap;
         for (auto i = 0; i < mesh.faces.size(); i++)
         {
             const auto &face = mesh.faces[i];
@@ -101,48 +101,48 @@ namespace quadric_error_metrics
                     std::swap(v1, v2);
 
                 long id = v1 * n + v2;
-                if (edgeMap.count(id) == 0)
-                    edgeMap[id] = {v1 : v1, v2 : v2, version : vertexVersions[v1] + vertexVersions[v2]};
+                if (pairMap.count(id) == 0)
+                    pairMap[id] = {v1 : v1, v2 : v2, version : vertexVersions[v1] + vertexVersions[v2]};
             }
 
             for (auto v : face)
                 vertexFaces[v].emplace_back(i);
         }
 
-        for (auto &[_, edge] : edgeMap)
+        for (auto &[_, pair] : pairMap)
         {
-            update_quadric_error(edge);
-            edges.push(edge);
+            update_quadric_error(pair);
+            pairs.push(pair);
         }
     }
 
     template <typename T>
-    void QuadricErrorMetrics<T>::collapse_edge(const PairContraction &edge)
+    void QuadricErrorMetrics<T>::contract_pair(const Pair &pair)
     {
-        mesh.vertices[edge.v1] = get_best_vertex(edge);
-        vertexVersions[edge.v1]++;
-        vertexVersions[edge.v2] = INVALID;
+        mesh.vertices[pair.v1] = get_best_vertex(pair);
+        vertexVersions[pair.v1]++;
+        vertexVersions[pair.v2] = INVALID;
 
         // merge faces from v2 to v1
-        for (auto faceId : vertexFaces[edge.v2])
+        for (auto faceId : vertexFaces[pair.v2])
         {
             auto &face = mesh.faces.at(faceId);
             auto flag = true;
             for (auto &v : face)
             {
-                if (v == edge.v1)
+                if (v == pair.v1)
                     flag = false;
 
-                if (v == edge.v2)
-                    v = edge.v1;
+                if (v == pair.v2)
+                    v = pair.v1;
             }
 
             if (flag)
-                vertexFaces[edge.v1].emplace_back(faceId);
+                vertexFaces[pair.v1].emplace_back(faceId);
         }
 
-        //  insert new edges
-        for (auto faceId : vertexFaces[edge.v1])
+        //  insert new pairs
+        for (auto faceId : vertexFaces[pair.v1])
         {
             const auto &face = mesh.faces.at(faceId);
             if (mesh::hasDegenerate(face))
@@ -155,28 +155,28 @@ namespace quadric_error_metrics
                 if (v1 > v2)
                     std::swap(v1, v2);
 
-                PairContraction edge{
+                Pair pair{
                     v1 : v1,
                     v2 : v2,
                     version : vertexVersions[v1] + vertexVersions[v2],
                 };
-                update_quadric_error(edge);
-                edges.emplace(edge);
+                update_quadric_error(pair);
+                pairs.emplace(pair);
             }
         }
     };
 
     template <typename T>
-    void QuadricErrorMetrics<T>::update_quadric_error(PairContraction &edge)
+    void QuadricErrorMetrics<T>::update_quadric_error(Pair &pair)
     {
-        edge.quadricError = std::rand(); // TODO
+        pair.quadricError = std::rand(); // TODO
     };
 
     template <typename T>
-    mesh::Vertex<T> QuadricErrorMetrics<T>::get_best_vertex(const PairContraction &edge)
+    mesh::Vertex<T> QuadricErrorMetrics<T>::get_best_vertex(const Pair &pair)
     {
         // TODO
-        return mesh::interpolation(0.5, mesh.vertices.at(edge.v1), mesh.vertices.at(edge.v2));
+        return mesh::interpolation(0.5, mesh.vertices.at(pair.v1), mesh.vertices.at(pair.v2));
     };
 
     template <typename T>

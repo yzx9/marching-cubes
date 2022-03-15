@@ -137,8 +137,8 @@ namespace marching_cubes
             auto &index = vertex_index[min[0]][min[1]][min[2]][static_cast<int>(dir)];
             if (index == -1)
             {
-                auto coord = vec3::interpolation<T>(isovalue, va.val, vb.val, va.coord, vb.coord);
-                auto normal = vec3::interpolation<T>(isovalue, va.normal, vb.normal);
+                auto coord = vec3::interpolate<T>(isovalue, va.val, vb.val, va.coord, vb.coord);
+                auto normal = vec3::interpolate<T>(isovalue, va.normal, vb.normal);
                 vec3::normalize(normal);
 
                 // TODO[feat]: support async

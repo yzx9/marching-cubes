@@ -176,7 +176,7 @@ namespace quadric_error_metrics
     mesh::Vertex<T> QuadricErrorMetrics<T>::get_best_vertex(const Pair &pair)
     {
         // TODO
-        return mesh::interpolation(0.5, mesh.vertices.at(pair.v1), mesh.vertices.at(pair.v2));
+        return mesh::interpolate(0.5, mesh.vertices.at(pair.v1), mesh.vertices.at(pair.v2));
     };
 
     template <typename T>

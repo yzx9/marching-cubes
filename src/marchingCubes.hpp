@@ -29,7 +29,7 @@ namespace marching_cubes
         const T isovalue;
         const voxel::Voxels<T> &voxels;
         Mesh<T> mesh;
-        std::vector<std::vector<std::vector<std::array<int, 3>>>> vertex_index;
+        std::vector<std::vector<std::vector<Vec3<int>>>> vertex_index;
 
         void calc_voxel(const Vec3<int> &pos);
         Vertices<T> get_vertices(const Vec3<int> &pos);
@@ -49,10 +49,10 @@ namespace marching_cubes
         // initial vertices, set -1 as default
         for (auto x = 0; x < voxels.size() - 1; x++)
         {
-            std::vector<std::vector<std::array<int, 3>>> vv;
+            std::vector<std::vector<Vec3<int>>> vv;
             for (auto y = 0; y < voxels[0].size() - 1; y++)
             {
-                std::vector<std::array<int, 3>> v;
+                std::vector<Vec3<int>> v;
                 for (auto z = 0; z < voxels[0][0].size() - 1; z++)
                     v.emplace_back(Vec3<int>{-1, -1, -1});
 
@@ -103,17 +103,13 @@ namespace marching_cubes
         for (auto i = 0; i < 8; i++)
         {
             const auto &[ox, oy, oz] = _private::vertex_offsets[i];
-            const auto x = std::get<0>(pos) + ox;
-            const auto y = std::get<1>(pos) + oy;
-            const auto z = std::get<2>(pos) + oz;
-            const auto coord = Vec3<T>{static_cast<T>(x), static_cast<T>(y), static_cast<T>(z)};
-            const auto val = voxels[x][y][z];
-            const auto normal = voxel::get_normal<T>(voxels, x, y, z);
-
+            const auto x = pos[0] + ox;
+            const auto y = pos[1] + oy;
+            const auto z = pos[2] + oz;
             v[i] = Vertex<T>{
-                val : val,
-                coord : coord,
-                normal : normal
+                val : voxels[x][y][z],
+                coord : Vec3<T>{static_cast<T>(x), static_cast<T>(y), static_cast<T>(z)},
+                normal : voxel::get_normal<T>(voxels, x, y, z)
             };
         }
 

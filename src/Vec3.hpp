@@ -5,7 +5,25 @@
 namespace vec3
 {
     template <typename T>
-    using Vec3 = std::array<T, 3>;
+    class Vec3
+    {
+    public:
+        Vec3(){};
+        Vec3(Vec3<T> &&v) : data(std::move(v.data)){};
+
+        T &x() { return data[0]; };
+        T &y() { return data[1]; };
+        T &z() { return data[2]; };
+        constexpr int size() const { return 3; };
+
+        T &operator[](int i) { return data[i]; };
+        const T &operator[](int i) const { return data[i]; };
+        Vec3<T> operator+(const Vec3<T> &v) const { return Vec3<T>{data[0] + v[0], data[1] + v[1], data[2] + v[2]}; };
+        Vec3<T> operator-(const Vec3<T> &v) const { return Vec3<T>{data[0] - v[0], data[1] - v[1], data[2] - v[2]}; };
+
+    private:
+        std::array<T, 3> data;
+    };
 
     template <typename T>
     inline Vec3<T> product(const Vec3<T> &v1, const Vec3<T> &v2)

@@ -3,8 +3,8 @@
 #include <queue>
 #include <tuple>
 #include <vector>
+#include <unordered_map>
 #include "Mesh.hpp"
-#include "unordered_map"
 
 namespace quadric_error_metrics
 {
@@ -105,8 +105,8 @@ namespace quadric_error_metrics
                     pairMap[id] = {v1 : v1, v2 : v2, version : vertexVersions[v1] + vertexVersions[v2]};
             }
 
-            for (auto v : face)
-                vertexFaces[v].emplace_back(i);
+            for (int j = 0; j < face.size(); j++)
+                vertexFaces[face[j]].emplace_back(i);
         }
 
         for (auto &[_, pair] : pairMap)
@@ -128,13 +128,13 @@ namespace quadric_error_metrics
         {
             auto &face = mesh.faces.at(faceId);
             auto flag = true;
-            for (auto &v : face)
+            for (int i = 0; i < face.size(); i++)
             {
-                if (v == pair.v1)
+                if (face[i] == pair.v1)
                     flag = false;
 
-                if (v == pair.v2)
-                    v = pair.v1;
+                if (face[i] == pair.v2)
+                    face[i] = pair.v1;
             }
 
             if (flag)
@@ -189,11 +189,11 @@ namespace quadric_error_metrics
             if (vertexVersions[j] != INVALID)
             {
                 for (auto faceID : vertexFaces[j])
-                    for (auto &v : mesh.faces.at(faceID))
-                        if (v == j)
-                            v = i;
+                    for (int k = 0; k < mesh.faces[faceID].size(); k++)
+                        if (mesh.faces[faceID][k] == j)
+                            mesh.faces[faceID][k] = i;
 
-                mesh.vertices[i++] = mesh.vertices[j];
+                mesh.vertices[i++] = std::move(mesh.vertices[j]);
             }
         }
         mesh.vertices.resize(i);

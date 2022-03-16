@@ -4,7 +4,6 @@
 namespace mesh
 {
     using vec3::Vec3;
-    using Face = Vec3<int>;
 
     template <typename T>
     class Vertex
@@ -20,10 +19,10 @@ namespace mesh
     {
     public:
         std::vector<Vertex<T>> vertices;
-        std::vector<Face> faces;
+        std::vector<Vec3<int>> faces;
     };
 
-    bool hasDegenerate(const Face &face)
+    bool hasDegenerate(const Vec3<int> &face)
     {
         return (face[0] == face[1]) || (face[1] == face[2]) || (face[2] == face[0]);
     }

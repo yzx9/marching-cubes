@@ -32,11 +32,10 @@ namespace mesh
     Vertex<T> interpolate(double isovalue, const Vertex<T> &v1, const Vertex<T> v2)
     {
         auto normal = vec3::interpolate(isovalue, v1.normal, v2.normal);
-        vec3::normalize(normal);
         return Vertex<T>{
             val : v1.val * isovalue + v2.val * (1 - isovalue),
             coord : vec3::interpolate(isovalue, v1.coord, v2.coord),
-            normal : normal,
+            normal : vec3::normalize(normal),
         };
     }
 }

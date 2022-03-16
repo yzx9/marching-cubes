@@ -139,14 +139,13 @@ namespace marching_cubes
             {
                 auto coord = vec3::interpolate<T>(isovalue, va.val, vb.val, va.coord, vb.coord);
                 auto normal = vec3::interpolate<T>(isovalue, va.normal, vb.normal);
-                vec3::normalize(normal);
 
                 // TODO[feat]: support async
                 index = mesh.vertices.size();
                 mesh.vertices.emplace_back(Vertex<T>{
                     val : isovalue,
                     coord : coord,
-                    normal : normal
+                    normal : vec3::normalize(normal)
                 });
             }
 

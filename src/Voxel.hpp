@@ -101,8 +101,7 @@ namespace voxel
                         ? val - voxels[x][y][z - 1]
                         : (voxels[x][y][z + 1] - voxels[x][y][z - 1]) / 2;
 
-        vec3::normalize(normal);
-        return normal;
+        return vec3::normalize(normal);
     }
 
     namespace _private

@@ -1,9 +1,9 @@
 #pragma once
-#include "Vec3.hpp"
+#include "Vec.hpp"
 
 namespace mesh
 {
-    using vec3::Vec3;
+    using vec::Vec3;
 
     template <typename T>
     class Vertex
@@ -30,11 +30,11 @@ namespace mesh
     template <typename T>
     Vertex<T> interpolate(double isovalue, const Vertex<T> &v1, const Vertex<T> v2)
     {
-        auto normal = vec3::interpolate(isovalue, v1.normal, v2.normal);
+        auto normal = vec::interpolate(isovalue, v1.normal, v2.normal);
         return Vertex<T>{
             val : v1.val * isovalue + v2.val * (1 - isovalue),
-            coord : vec3::interpolate(isovalue, v1.coord, v2.coord),
-            normal : vec3::normalize(normal),
+            coord : vec::interpolate(isovalue, v1.coord, v2.coord),
+            normal : vec::normalize(normal),
         };
     }
 }

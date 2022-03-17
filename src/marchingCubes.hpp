@@ -6,14 +6,14 @@
 #include <memory>
 #include "marchingCubesTables.hpp"
 #include "Voxel.hpp"
-#include "Vec3.hpp"
+#include "Vec.hpp"
 #include "Mesh.hpp"
 
 namespace marching_cubes
 {
     using mesh::Mesh;
     using mesh::Vertex;
-    using vec3::Vec3;
+    using vec::Vec3;
 
     template <typename T>
     using Vertices = std::array<Vertex<T>, 8>;
@@ -129,19 +129,19 @@ namespace marching_cubes
             const auto &va = vertices[a];
             const auto &vb = vertices[b];
 
-            const auto min = vec3::min<T>(va.coord, vb.coord);
+            const auto min = vec::min<T>(va.coord, vb.coord);
             auto &index = vertex_index[min[0]][min[1]][min[2]][static_cast<int>(dir)];
             if (index == -1)
             {
-                auto coord = vec3::interpolate<T>(isovalue, va.val, vb.val, va.coord, vb.coord);
-                auto normal = vec3::interpolate<T>(isovalue, va.normal, vb.normal);
+                auto coord = vec::interpolate<T>(isovalue, va.val, vb.val, va.coord, vb.coord);
+                auto normal = vec::interpolate<T>(isovalue, va.normal, vb.normal);
 
                 // TODO[feat]: support async
                 index = mesh.vertices.size();
                 mesh.vertices.emplace_back(Vertex<T>{
                     val : isovalue,
                     coord : coord,
-                    normal : vec3::normalize(normal)
+                    normal : vec::normalize(normal)
                 });
             }
 

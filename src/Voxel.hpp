@@ -7,11 +7,11 @@
 #include <memory>
 #include <limits>
 #include <tiffio.h>
-#include "Vec3.hpp"
+#include "Vec.hpp"
 
 namespace voxel
 {
-    using vec3::Vec3;
+    using vec::Vec3;
 
     template <typename T>
     using Voxels = std::vector<std::vector<std::vector<T>>>;
@@ -101,7 +101,7 @@ namespace voxel
                         ? val - voxels[x][y][z - 1]
                         : (voxels[x][y][z + 1] - voxels[x][y][z - 1]) / 2;
 
-        return vec3::normalize(normal);
+        return vec::normalize(normal);
     }
 
     namespace _private

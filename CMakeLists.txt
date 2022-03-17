@@ -11,12 +11,13 @@ add_executable(marching_cubes
     src/main.cpp
     src/marchingCubes.hpp
     src/marchingCubesTables.hpp
-    src/quadricErrorMetrics.hpp
-    src/obj.hpp
-    src/util.hpp
-    src/Vec3.hpp
-    src/Voxel.hpp
+    src/Matrix.hpp
     src/Mesh.hpp
+    src/obj.hpp
+    src/quadricErrorMetrics.hpp
+    src/util.hpp
+    src/Vec.hpp
+    src/Voxel.hpp
 )
 
 target_link_libraries(marching_cubes TIFF::TIFF)

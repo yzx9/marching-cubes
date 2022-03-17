@@ -4,12 +4,15 @@
 #include <tuple>
 #include <vector>
 #include <unordered_map>
+#include "Matrix.hpp"
 #include "Mesh.hpp"
+#include "Vec.hpp"
 
 namespace quadric_error_metrics
 {
+    using matrix::SymmetryMatrix4;
     using mesh::Mesh;
-    constexpr int INVALID = -1;
+    constexpr int INVALID = 0;
 
     struct Pair
     {
@@ -32,9 +35,13 @@ namespace quadric_error_metrics
         std::vector<std::vector<int>> vertexFaces;
         std::vector<int> vertexVersions;
         std::priority_queue<Pair> pairs;
+        std::vector<SymmetryMatrix4<T>> faceKp;
+        std::vector<SymmetryMatrix4<T>> verticeKp;
 
         void build_pairs();
         void contract_pair(const Pair &pair);
+        void update_face_kp(int faceID);
+        void update_vertice_kp(int verticeID);
         void update_quadric_error(Pair &pair);
         mesh::Vertex<T> get_best_vertex(const Pair &pair);
         void tidy_mesh();
@@ -56,9 +63,25 @@ namespace quadric_error_metrics
         for (int i = 0; i < mesh.vertices.size(); i++)
         {
             vertexFaces.emplace_back(std::vector<int>{});
-            vertexVersions.emplace_back(0);
+            vertexVersions.emplace_back(INVALID + 1);
         }
 
+        // build vertex faces
+        for (auto i = 0; i < mesh.faces.size(); i++)
+            for (int j = 0; j < mesh.faces[i].size(); j++)
+                vertexFaces[mesh.faces[i][j]].emplace_back(i);
+
+        // build face Kp
+        faceKp.resize(mesh.faces.size());
+        for (int i = 0; i < mesh.faces.size(); i++)
+            update_face_kp(i);
+
+        // build vertex Kp
+        verticeKp.resize(mesh.vertices.size());
+        for (int i = 0; i < mesh.vertices.size(); i++)
+            update_vertice_kp(i);
+
+        // build vertex pairs
         build_pairs();
     }
 
@@ -69,9 +92,7 @@ namespace quadric_error_metrics
         {
             auto p = pairs.top();
             pairs.pop();
-            if (vertexVersions[p.v1] == INVALID ||
-                vertexVersions[p.v2] == INVALID ||
-                vertexVersions[p.v1] + vertexVersions[p.v2] != p.version)
+            if (vertexVersions[p.v1] + vertexVersions[p.v2] != p.version)
                 continue;
 
             contract_pair(p);
@@ -104,9 +125,6 @@ namespace quadric_error_metrics
                 if (pairMap.count(id) == 0)
                     pairMap[id] = {v1 : v1, v2 : v2, version : vertexVersions[v1] + vertexVersions[v2]};
             }
-
-            for (int j = 0; j < face.size(); j++)
-                vertexFaces[face[j]].emplace_back(i);
         }
 
         for (auto &[_, pair] : pairMap)
@@ -141,6 +159,9 @@ namespace quadric_error_metrics
                 vertexFaces[pair.v1].emplace_back(faceId);
         }
 
+        for (auto faceID : vertexFaces[pair.v1])
+            update_face_kp(faceID);
+
         //  insert new pairs
         for (auto faceId : vertexFaces[pair.v1])
         {
@@ -155,11 +176,7 @@ namespace quadric_error_metrics
                 if (v1 > v2)
                     std::swap(v1, v2);
 
-                Pair pair{
-                    v1 : v1,
-                    v2 : v2,
-                    version : vertexVersions[v1] + vertexVersions[v2],
-                };
+                Pair pair{v1 : v1, v2 : v2, version : vertexVersions[v1] + vertexVersions[v2]};
                 update_quadric_error(pair);
                 pairs.emplace(pair);
             }
@@ -167,9 +184,39 @@ namespace quadric_error_metrics
     };
 
     template <typename T>
+    void QuadricErrorMetrics<T>::update_face_kp(int faceID)
+    {
+        const auto &v = mesh.vertices;
+        const auto &f = mesh.faces[faceID];
+        auto normal = vec::product(v[f[0]].coord - v[f[1]].coord, v[f[0]].coord - v[f[2]].coord);
+
+        const auto v0 = v[f[0]].coord;
+        const auto a = normal[0];
+        const auto b = normal[1];
+        const auto c = normal[2];
+        const auto d = -a * v0[0] - b * v0[1] - c * v0[2];
+
+        faceKp[faceID] = SymmetryMatrix4(a * a, a * b, a * c, a * d,
+                                         /*  */ b * b, b * c, b * d,
+                                         /*         */ c * c, c * d,
+                                         /*                */ d * d);
+    }
+
+    template <typename T>
+    void QuadricErrorMetrics<T>::update_vertice_kp(int verticeID)
+    {
+        SymmetryMatrix4<T> kp;
+        kp.fill(static_cast<T>(0));
+        for (auto faceID : vertexFaces[verticeID])
+            kp = kp + faceKp[faceID];
+    }
+
+    template <typename T>
     void QuadricErrorMetrics<T>::update_quadric_error(Pair &pair)
     {
-        pair.quadricError = std::rand(); // TODO
+        auto v3 = mesh.vertices[pair.v1].coord - mesh.vertices[pair.v2].coord;
+        vec::Vec4<T> v(v3, 1);
+        pair.quadricError = v * (verticeKp[pair.v1] + verticeKp[pair.v2]) * v;
     };
 
     template <typename T>

@@ -3,7 +3,7 @@
 #include <queue>
 #include <tuple>
 #include <vector>
-#include <unordered_map>
+#include <set>
 #include "Matrix.hpp"
 #include "Mesh.hpp"
 #include "Vec.hpp"
@@ -105,8 +105,7 @@ namespace quadric_error_metrics
     template <typename T>
     void QuadricErrorMetrics<T>::build_pairs()
     {
-        const int n = mesh.faces.size() * 3;
-        std::unordered_map<long, Pair> pairMap;
+        std::set<long> pairIds;
         for (auto i = 0; i < mesh.faces.size(); i++)
         {
             const auto &face = mesh.faces[i];
@@ -120,16 +119,15 @@ namespace quadric_error_metrics
                 if (v1 > v2)
                     std::swap(v1, v2);
 
-                long id = v1 * n + v2;
-                if (pairMap.count(id) == 0)
-                    pairMap[id] = {v1 : v1, v2 : v2, version : vertexVersions[v1] + vertexVersions[v2]};
-            }
-        }
+                long id = v1 << 32 + v2;
+                if (pairIds.contains(id))
+                    continue;
 
-        for (auto &[_, pair] : pairMap)
-        {
-            update_quadric_error(pair);
-            pairs.push(pair);
+                Pair pair{v1 : v1, v2 : v2, version : vertexVersions[v1] + vertexVersions[v2]};
+                update_quadric_error(pair);
+                pairs.push(pair);
+                pairIds.insert(id);
+            }
         }
     }
 
@@ -214,7 +212,8 @@ namespace quadric_error_metrics
         SymmetryMatrix4<T> kp;
         kp.fill(static_cast<T>(0));
         for (auto faceID : vertexFaces[verticeID])
-            kp = kp + faceKp[faceID];
+            if (!mesh::hasDegenerate(mesh.faces[faceID]))
+                kp = kp + faceKp[faceID];
     }
 
     template <typename T>

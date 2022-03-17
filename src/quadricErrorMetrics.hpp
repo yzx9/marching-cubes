@@ -43,7 +43,7 @@ namespace quadric_error_metrics
         void update_face_kp(int faceID);
         void update_vertice_kp(int verticeID);
         void update_quadric_error(Pair &pair);
-        mesh::Vertex<T> get_best_vertex(const Pair &pair);
+        mesh::Vertex<T> get_best_vertex(const Pair &pair) const;
         void tidy_mesh();
     };
 
@@ -110,14 +110,13 @@ namespace quadric_error_metrics
         for (auto i = 0; i < mesh.faces.size(); i++)
         {
             const auto &face = mesh.faces[i];
-            if (mesh::hasDegenerate(face))
-                continue;
-
-            std::array<std::tuple<int, int>, 3> faceEdges{
-                std::tuple<int, int>{face[0], face[1]}, {face[1], face[2]}, {face[2], face[0]}};
-            for (auto j = 0; j < faceEdges.size(); j++)
+            std::array<int, 6> faceEdges{face[0], face[1],
+                                         face[1], face[2],
+                                         face[2], face[0]};
+            for (auto j = 0; j < faceEdges.size(); j += 2)
             {
-                auto [v1, v2] = faceEdges[j];
+                auto v1 = faceEdges[j + 0];
+                auto v2 = faceEdges[j + 1];
                 if (v1 > v2)
                     std::swap(v1, v2);
 
@@ -142,9 +141,9 @@ namespace quadric_error_metrics
         vertexVersions[pair.v2] = INVALID;
 
         // merge faces from v2 to v1
-        for (auto faceId : vertexFaces[pair.v2])
+        for (auto faceID : vertexFaces[pair.v2])
         {
-            auto &face = mesh.faces.at(faceId);
+            auto &face = mesh.faces.at(faceID);
             auto flag = true;
             for (int i = 0; i < face.size(); i++)
             {
@@ -156,23 +155,30 @@ namespace quadric_error_metrics
             }
 
             if (flag)
-                vertexFaces[pair.v1].emplace_back(faceId);
+                vertexFaces[pair.v1].emplace_back(faceID);
         }
 
+        // update kp
         for (auto faceID : vertexFaces[pair.v1])
-            update_face_kp(faceID);
+            if (!mesh::hasDegenerate(mesh.faces.at(faceID)))
+                update_face_kp(faceID);
+
+        update_vertice_kp(pair.v1);
 
         //  insert new pairs
-        for (auto faceId : vertexFaces[pair.v1])
+        for (auto faceID : vertexFaces[pair.v1])
         {
-            const auto &face = mesh.faces.at(faceId);
+            const auto &face = mesh.faces.at(faceID);
             if (mesh::hasDegenerate(face))
                 continue;
 
-            std::array<std::tuple<int, int>, 3> faceEdges{
-                std::tuple<int, int>{face[0], face[1]}, {face[1], face[2]}, {face[2], face[0]}};
-            for (auto [v1, v2] : faceEdges)
+            std::array<int, 6> faceEdges{face[0], face[1],
+                                         face[1], face[2],
+                                         face[2], face[0]};
+            for (auto j = 0; j < faceEdges.size(); j += 2)
             {
+                auto v1 = faceEdges[j + 0];
+                auto v2 = faceEdges[j + 1];
                 if (v1 > v2)
                     std::swap(v1, v2);
 
@@ -216,11 +222,12 @@ namespace quadric_error_metrics
     {
         auto v3 = mesh.vertices[pair.v1].coord - mesh.vertices[pair.v2].coord;
         vec::Vec4<T> v(v3, 1);
+        // Here, Kp potentially contains planes(v1) ∩ planes(v2) twice.
         pair.quadricError = v * (verticeKp[pair.v1] + verticeKp[pair.v2]) * v;
     };
 
     template <typename T>
-    mesh::Vertex<T> QuadricErrorMetrics<T>::get_best_vertex(const Pair &pair)
+    mesh::Vertex<T> QuadricErrorMetrics<T>::get_best_vertex(const Pair &pair) const
     {
         // TODO
         return mesh::interpolate(0.5, mesh.vertices.at(pair.v1), mesh.vertices.at(pair.v2));

@@ -30,7 +30,7 @@ int main()
 
     util::run_with_duration(
         "Simplify mesh", [&mesh]()
-        { return quadric_error_metrics::simplify(mesh, 0.5); });
+        { return quadric_error_metrics::simplify(mesh, 0.3); });
 
     auto objFilePath = std::filesystem::current_path().append(obj);
     obj::save<float>(objFilePath, mesh);

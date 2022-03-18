@@ -14,13 +14,15 @@ namespace quadric_error_metrics
     using mesh::Mesh;
     constexpr int INVALID = 0;
 
+    template <typename T>
     struct Pair
     {
         int v1;
         int v2;
         int version; // invalid when any vertex change
-        double quadricError;
-        bool operator<(const Pair &c) const { return quadricError > c.quadricError; }
+        T quadricError;
+        mesh::Vertex<T> newVertex;
+        bool operator<(const Pair<T> &p) const { return quadricError >= p.quadricError; }
     };
 
     template <typename T>
@@ -34,17 +36,17 @@ namespace quadric_error_metrics
         Mesh<T> &mesh;
         std::vector<std::vector<int>> vertexFaces;
         std::vector<int> vertexVersions;
-        std::priority_queue<Pair> pairs;
+        std::priority_queue<Pair<T>> pairs;
         std::vector<SymmetryMatrix4<T>> faceKp;
         std::vector<SymmetryMatrix4<T>> verticeKp;
 
         void build_pairs();
-        void contract_pair(const Pair &pair);
+        void contract_pair(const Pair<T> &pair);
+        void tidy_mesh();
+
         void update_face_kp(int faceID);
         void update_vertice_kp(int verticeID);
-        void update_quadric_error(Pair &pair);
-        mesh::Vertex<T> get_best_vertex(const Pair &pair) const;
-        void tidy_mesh();
+        Pair<T> new_pair(int v1, int v2) const;
     };
 
     template <typename T>
@@ -56,16 +58,9 @@ namespace quadric_error_metrics
     };
 
     template <typename T>
-    QuadricErrorMetrics<T>::QuadricErrorMetrics(Mesh<T> &mesh) : mesh(mesh)
+    QuadricErrorMetrics<T>::QuadricErrorMetrics(Mesh<T> &mesh)
+        : mesh(mesh), vertexFaces(mesh.vertices.size()), vertexVersions(mesh.vertices.size(), INVALID + 1)
     {
-        vertexFaces.reserve(mesh.vertices.size());
-        vertexVersions.reserve(mesh.vertices.size());
-        for (int i = 0; i < mesh.vertices.size(); i++)
-        {
-            vertexFaces.emplace_back(std::vector<int>{});
-            vertexVersions.emplace_back(INVALID + 1);
-        }
-
         // build vertex faces
         for (auto i = 0; i < mesh.faces.size(); i++)
             for (int j = 0; j < mesh.faces[i].size(); j++)
@@ -90,13 +85,14 @@ namespace quadric_error_metrics
     {
         while (simplifyN && !pairs.empty())
         {
-            auto p = pairs.top();
-            pairs.pop();
-            if (vertexVersions[p.v1] + vertexVersions[p.v2] != p.version)
-                continue;
+            const auto &p = pairs.top();
+            if (vertexVersions[p.v1] + vertexVersions[p.v2] == p.version)
+            {
+                contract_pair(p);
+                simplifyN--;
+            }
 
-            contract_pair(p);
-            simplifyN--;
+            pairs.pop();
         }
 
         tidy_mesh();
@@ -123,8 +119,7 @@ namespace quadric_error_metrics
                 if (pairIds.contains(id))
                     continue;
 
-                Pair pair{v1 : v1, v2 : v2, version : vertexVersions[v1] + vertexVersions[v2]};
-                update_quadric_error(pair);
+                auto pair = new_pair(v1, v2);
                 pairs.push(pair);
                 pairIds.insert(id);
             }
@@ -132,9 +127,9 @@ namespace quadric_error_metrics
     }
 
     template <typename T>
-    void QuadricErrorMetrics<T>::contract_pair(const Pair &pair)
+    void QuadricErrorMetrics<T>::contract_pair(const Pair<T> &pair)
     {
-        mesh.vertices[pair.v1] = get_best_vertex(pair);
+        mesh.vertices[pair.v1] = pair.newVertex;
         vertexVersions[pair.v1]++;
         vertexVersions[pair.v2] = INVALID;
 
@@ -146,7 +141,7 @@ namespace quadric_error_metrics
             for (int i = 0; i < face.size(); i++)
             {
                 if (face[i] == pair.v1)
-                    flag = false;
+                    flag = false; // degenerate face
 
                 if (face[i] == pair.v2)
                     face[i] = pair.v1;
@@ -177,12 +172,13 @@ namespace quadric_error_metrics
             {
                 auto v1 = faceEdges[j + 0];
                 auto v2 = faceEdges[j + 1];
+                if (v1 != pair.v1 && v2 != pair.v1)
+                    continue;
+
                 if (v1 > v2)
                     std::swap(v1, v2);
 
-                Pair pair{v1 : v1, v2 : v2, version : vertexVersions[v1] + vertexVersions[v2]};
-                update_quadric_error(pair);
-                pairs.emplace(pair);
+                pairs.emplace(new_pair(v1, v2));
             }
         }
     };
@@ -192,14 +188,13 @@ namespace quadric_error_metrics
     {
         const auto &v = mesh.vertices;
         const auto &f = mesh.faces[faceID];
-        auto normal = vec::product(v[f[0]].coord - v[f[1]].coord, v[f[0]].coord - v[f[2]].coord);
+        const auto &v0 = v[f[0]].coord;
+        auto normal = vec::normalize(vec::product(v0 - v[f[1]].coord, v0 - v[f[2]].coord));
 
-        const auto v0 = v[f[0]].coord;
-        const auto a = normal[0];
-        const auto b = normal[1];
-        const auto c = normal[2];
-        const auto d = -a * v0[0] - b * v0[1] - c * v0[2];
-
+        auto a = normal[0];
+        auto b = normal[1];
+        auto c = normal[2];
+        auto d = -a * v0[0] - b * v0[1] - c * v0[2];
         faceKp[faceID] = SymmetryMatrix4(a * a, a * b, a * c, a * d,
                                          /*  */ b * b, b * c, b * d,
                                          /*         */ c * c, c * d,
@@ -217,20 +212,23 @@ namespace quadric_error_metrics
     }
 
     template <typename T>
-    void QuadricErrorMetrics<T>::update_quadric_error(Pair &pair)
-    {
-        auto v3 = mesh.vertices[pair.v1].coord - mesh.vertices[pair.v2].coord;
-        vec::Vec4<T> v(v3, 1);
-        // Here, Kp potentially contains planes(v1) ∩ planes(v2) twice.
-        pair.quadricError = v * (verticeKp[pair.v1] + verticeKp[pair.v2]) * v;
-    };
-
-    template <typename T>
-    mesh::Vertex<T> QuadricErrorMetrics<T>::get_best_vertex(const Pair &pair) const
+    Pair<T> QuadricErrorMetrics<T>::new_pair(int v1, int v2) const
     {
         // TODO
-        return mesh::interpolate(0.5, mesh.vertices.at(pair.v1), mesh.vertices.at(pair.v2));
-    };
+        auto vertex = mesh::interpolate(0.5, mesh.vertices[v1], mesh.vertices[v2]);
+
+        // Calc quadric error, Kp potentially contains planes(v1) ∩ planes(v2) twice.
+        vec::Vec4<T> v(vertex.coord, 1);
+        T quadricError = v * (verticeKp[v1] + verticeKp[v2]) * v;
+
+        return Pair<T>{
+            v1 : v1,
+            v2 : v2,
+            version : vertexVersions[v1] + vertexVersions[v2],
+            quadricError : quadricError,
+            newVertex : vertex
+        };
+    }
 
     template <typename T>
     void QuadricErrorMetrics<T>::tidy_mesh()

@@ -23,7 +23,7 @@ namespace matrix
         SymmetryMatrix4<T> operator+(const SymmetryMatrix4<T> &m) const
         {
             SymmetryMatrix4<T> matrix;
-            for (int i = 0; i < 10; i++)
+            for (int i = 0; i < data.size(); i++)
                 matrix.data[i] = data[i] + m.data[i];
 
             return matrix;

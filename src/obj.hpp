@@ -14,26 +14,22 @@ namespace obj
 
         stream << "# List of vertices" << std::endl;
         for (auto &v : mesh.vertices)
-            stream << "v"
-                   << " " << v.coord[0]
-                   << " " << v.coord[1]
-                   << " " << v.coord[2] << std::endl;
+            stream << "v " << v.coord[0] << " " << v.coord[1] << " " << v.coord[2] << std::endl;
+        stream << std::endl;
 
-        stream << std::endl
-               << "# List of normals" << std::endl;
+        stream << "# List of normals" << std::endl;
         for (auto &v : mesh.vertices)
-            stream << "vn"
-                   << " " << v.normal[0]
-                   << " " << v.normal[1]
-                   << " " << v.normal[2] << std::endl;
+            stream << "vn " << v.normal[0] << " " << v.normal[1] << " " << v.normal[2] << std::endl;
+        stream << std::endl;
 
-        stream << std::endl
-               << "# List of faces" << std::endl;
+        stream << "# List of faces" << std::endl;
         for (auto &f : mesh.faces)
             stream << "f"
                    << " " << f[0] + 1 << "//" << f[0] + 1
                    << " " << f[1] + 1 << "//" << f[1] + 1
-                   << " " << f[2] + 1 << "//" << f[2] + 1 << std::endl;
+                   << " " << f[2] + 1 << "//" << f[2] + 1
+                   << std::endl;
+        stream << std::endl;
 
         stream.close();
     }

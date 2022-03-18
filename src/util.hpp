@@ -24,10 +24,12 @@ namespace util
         auto milliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(nanoseconds);
 
         std::cout << title << " complete: " << std::endl
-                  << "Time taken: " << std::setw(4) << hours.count() << " hours, " << std::endl
-                  << "            " << std::setw(4) << minutes.count() << " minutes, " << std::endl
-                  << "            " << std::setw(4) << seconds.count() << " seconds, " << std::endl
-                  << "            " << std::setw(4) << milliseconds.count() << " milliseconds." << std::endl
+                  << "Time taken: "
+                  << std::setw(4) << hours.count() << "h "
+                  << std::setw(2) << minutes.count() << "m "
+                  << std::setw(2) << seconds.count() << "s "
+                  << std::setw(3) << milliseconds.count() << "ms."
+                  << std::endl
                   << std::endl;
     }
 

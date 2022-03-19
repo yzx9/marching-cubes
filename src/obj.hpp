@@ -29,7 +29,6 @@ namespace obj
                    << " " << f[1] + 1 << "//" << f[1] + 1
                    << " " << f[2] + 1 << "//" << f[2] + 1
                    << std::endl;
-        stream << std::endl;
 
         stream.close();
     }

@@ -29,6 +29,12 @@ namespace matrix
             return matrix;
         };
 
+        void operator+=(const SymmetryMatrix4<T> &m)
+        {
+            for (int i = 0; i < data.size(); i++)
+                data[i] += m.data[i];
+        };
+
         T &operator()(int i, int j) { return data[map[4 * i + j]]; };
         const T &operator()(int i, int j) const { return data[map[4 * i + j]]; };
 

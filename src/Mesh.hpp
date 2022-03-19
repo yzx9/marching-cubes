@@ -6,9 +6,8 @@ namespace mesh
     using vec::Vec3;
 
     template <typename T>
-    class Vertex
+    struct Vertex
     {
-    public:
         float val;
         Vec3<T> coord;
         Vec3<T> normal;

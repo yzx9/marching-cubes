@@ -115,13 +115,13 @@ namespace quadric_error_metrics
                 continue;
             }
 
-            std::array<int, 6> faceEdges{face[0], face[1],
-                                         face[1], face[2],
-                                         face[2], face[0]};
-            for (auto j = 0; j < faceEdges.size(); j += 2)
+            std::array<int, 6> edges{face[0], face[1],
+                                     face[1], face[2],
+                                     face[2], face[0]};
+            for (auto j = 0; j < edges.size(); j += 2)
             {
-                auto v1 = faceEdges[j + 0];
-                auto v2 = faceEdges[j + 1];
+                auto v1 = edges[j + 0];
+                auto v2 = edges[j + 1];
                 if (v1 > v2)
                     std::swap(v1, v2);
 
@@ -145,6 +145,9 @@ namespace quadric_error_metrics
         // merge faces from v2 to v1
         for (auto faceID : vertexFaces[pair.v2])
         {
+            if (!validFaces[faceID])
+                continue;
+
             auto &face = mesh.faces.at(faceID);
             for (int i = 0; i < face.size(); i++)
             {
@@ -157,6 +160,8 @@ namespace quadric_error_metrics
 
             if (validFaces[faceID])
                 vertexFaces[pair.v1].emplace(faceID);
+            else
+                vertexFaces[pair.v1].erase(faceID);
         }
         vertexFaces[pair.v2].clear();
 
@@ -167,25 +172,19 @@ namespace quadric_error_metrics
 
         update_vertice_kp(pair.v1);
 
-        //  insert new pairs
+        // insert new pairs
         for (auto faceID : vertexFaces[pair.v1])
         {
             const auto &face = mesh.faces.at(faceID);
             if (!validFaces[faceID])
                 continue;
 
-            std::array<int, 6> faceEdges{face[0], face[1],
-                                         face[1], face[2],
-                                         face[2], face[0]};
-            for (auto j = 0; j < faceEdges.size(); j += 2)
-            {
-                auto v1 = faceEdges[j + 0];
-                auto v2 = faceEdges[j + 1];
-                if (v1 != pair.v1 && v2 != pair.v1)
-                    continue;
-
-                emplace_pair(v1, v2);
-            }
+            std::array<int, 6> edges{face[0], face[1],
+                                     face[1], face[2],
+                                     face[2], face[0]};
+            for (auto j = 0; j < edges.size(); j += 2)
+                if (edges[j + 0] == pair.v1 || edges[j + 1] == pair.v1)
+                    emplace_pair(edges[j + 0], edges[j + 1]);
         }
     };
 
@@ -210,11 +209,10 @@ namespace quadric_error_metrics
     template <typename T>
     void QuadricErrorMetrics<T>::update_vertice_kp(int verticeID)
     {
-        SymmetryMatrix4<T> kp;
-        kp.fill(static_cast<T>(0));
+        verticeKp[verticeID].fill(static_cast<T>(0));
         for (auto faceID : vertexFaces[verticeID])
             if (validFaces[faceID])
-                kp = kp + faceKp[faceID];
+                verticeKp[verticeID] += faceKp[faceID];
     }
 
     template <typename T>
@@ -251,11 +249,11 @@ namespace quadric_error_metrics
                     if (mesh.faces[faceID][k] == j)
                         mesh.faces[faceID][k] = i;
 
-            mesh.vertices[i++] = std::move(mesh.vertices[j]);
+            mesh.vertices[i++] = mesh.vertices[j];
         }
         mesh.vertices.resize(i);
 
-        // remove degenerate triangles
+        // remove invalid faces
         i = 0;
         for (int j = 0; j < mesh.faces.size(); j++)
             if (validFaces[j])

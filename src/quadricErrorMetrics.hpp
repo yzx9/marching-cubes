@@ -48,7 +48,7 @@ namespace quadric_error_metrics
 
         void update_face_kp(int faceID);
         void update_vertice_kp(int verticeID);
-        Pair<T> new_pair(int v1, int v2) const;
+        void emplace_pair(int v1, int v2);
     };
 
     template <typename T>
@@ -129,9 +129,8 @@ namespace quadric_error_metrics
                 if (pairIds.contains(id))
                     continue;
 
-                auto pair = new_pair(v1, v2);
-                pairs.push(pair);
                 pairIds.insert(id);
+                emplace_pair(v1, v2);
             }
         }
     }
@@ -161,7 +160,7 @@ namespace quadric_error_metrics
         }
         vertexFaces[pair.v2].clear();
 
-        // update kp
+        // update Kp
         for (auto faceID : vertexFaces[pair.v1])
             if (validFaces[faceID])
                 update_face_kp(faceID);
@@ -185,7 +184,7 @@ namespace quadric_error_metrics
                 if (v1 != pair.v1 && v2 != pair.v1)
                     continue;
 
-                pairs.emplace(new_pair(v1, v2));
+                emplace_pair(v1, v2);
             }
         }
     };
@@ -219,7 +218,7 @@ namespace quadric_error_metrics
     }
 
     template <typename T>
-    Pair<T> QuadricErrorMetrics<T>::new_pair(int v1, int v2) const
+    void QuadricErrorMetrics<T>::emplace_pair(int v1, int v2)
     {
         // TODO
         auto vertex = mesh::interpolate(0.5, mesh.vertices[v1], mesh.vertices[v2]);
@@ -228,19 +227,18 @@ namespace quadric_error_metrics
         vec::Vec4<T> v(vertex.coord, 1);
         T quadricError = v * (verticeKp[v1] + verticeKp[v2]) * v;
 
-        return Pair<T>{
+        pairs.emplace(Pair<T>{
             v1 : v1,
             v2 : v2,
             version : vertexVersions[v1] + vertexVersions[v2],
             quadricError : quadricError,
             newVertex : vertex
-        };
+        });
     }
 
     template <typename T>
     void QuadricErrorMetrics<T>::tidy_mesh()
     {
-
         // remove invalid vertices
         int i = 0;
         for (int j = 0; j < mesh.vertices.size(); j++)

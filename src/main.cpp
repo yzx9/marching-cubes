@@ -54,29 +54,30 @@ mesh::Mesh<float> create_test_mesh()
         vec::Vec3<float>{+0.0, +1.0, 1.0},
         vec::Vec3<float>{+2.0, -4.0, 0.0},
         vec::Vec3<float>{+2.0, +0.0, 0.0},
-        vec::Vec3<float>{+2.0, +4.0, 0.0},
-    };
+        vec::Vec3<float>{+2.0, +4.0, 0.0}};
 
     std::vector<vec::Vec3<int>> faces{
         // up
-        vec::Vec3<int>{0, 1, 3},
-        vec::Vec3<int>{1, 2, 4},
+        vec::Vec3<int>{0, 3, 1},
+        vec::Vec3<int>{1, 4, 2},
         vec::Vec3<int>{1, 3, 4},
 
         // down
-        vec::Vec3<int>{3, 4, 6},
+        vec::Vec3<int>{3, 6, 4},
         vec::Vec3<int>{3, 5, 6},
         vec::Vec3<int>{4, 6, 7},
 
         // left
-        vec::Vec3<int>{0, 3, 5},
+        vec::Vec3<int>{0, 5, 3},
 
         // right
         vec::Vec3<int>{2, 4, 7},
 
         // bottom
-        vec::Vec3<int>{0, 2, 7},
-        vec::Vec3<int>{0, 5, 7}};
+        vec::Vec3<int>{0, 1, 7},
+        vec::Vec3<int>{1, 2, 7},
+        vec::Vec3<int>{0, 6, 5},
+        vec::Vec3<int>{0, 7, 6}};
 
     for (auto v : vertices)
         mesh.vertices.emplace_back(mesh::Vertex<float>{coord : v});

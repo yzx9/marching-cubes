@@ -122,10 +122,8 @@ namespace quadric_error_metrics
             {
                 auto v1 = edges[j + 0];
                 auto v2 = edges[j + 1];
-                if (v1 > v2)
-                    std::swap(v1, v2);
-
-                long id = v1 << 32 + v2;
+                long id = v2 > v1 ? v1 << 32 + v2
+                                  : v2 << 32 + v1;
                 if (pairIds.contains(id))
                     continue;
 
@@ -158,10 +156,7 @@ namespace quadric_error_metrics
                     face[i] = pair.v1;
             }
 
-            if (validFaces[faceID])
-                vertexFaces[pair.v1].emplace(faceID);
-            else
-                vertexFaces[pair.v1].erase(faceID);
+            vertexFaces[pair.v1].emplace(faceID);
         }
         vertexFaces[pair.v2].clear();
 
@@ -194,7 +189,7 @@ namespace quadric_error_metrics
         const auto &v = mesh.vertices;
         const auto &f = mesh.faces[faceID];
         const auto &v0 = v[f[0]].coord;
-        auto normal = vec::normalize(vec::product(v0 - v[f[1]].coord, v0 - v[f[2]].coord));
+        auto normal = vec::normalize(vec::product(v[f[1]].coord - v0, v[f[2]].coord - v0));
 
         auto a = normal[0];
         auto b = normal[1];

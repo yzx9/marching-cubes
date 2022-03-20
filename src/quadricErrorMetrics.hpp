@@ -43,7 +43,7 @@ namespace quadric_error_metrics
         std::vector<bool> validFaces;
 
         void build_pairs();
-        void contract_pair(const Pair<T> &pair);
+        int contract_pair(const Pair<T> &pair);
         void tidy_mesh();
 
         void update_face_kp(int faceID);
@@ -88,15 +88,12 @@ namespace quadric_error_metrics
     template <typename T>
     void QuadricErrorMetrics<T>::simplify(int simplifyN)
     {
-        while (simplifyN && !pairs.empty())
+        while (simplifyN > 0 && !pairs.empty())
         {
             auto p = pairs.top();
             pairs.pop();
             if (vertexVersions[p.v1] + vertexVersions[p.v2] == p.version)
-            {
-                contract_pair(p);
-                simplifyN--;
-            }
+                simplifyN -= contract_pair(p);
         }
 
         tidy_mesh();
@@ -134,13 +131,14 @@ namespace quadric_error_metrics
     }
 
     template <typename T>
-    void QuadricErrorMetrics<T>::contract_pair(const Pair<T> &pair)
+    int QuadricErrorMetrics<T>::contract_pair(const Pair<T> &pair)
     {
         mesh.vertices[pair.v1] = pair.newVertex;
         vertexVersions[pair.v1]++;
         vertexVersions[pair.v2] = INVALID;
 
         // merge faces from v2 to v1
+        int degenerateFace = 0;
         for (auto faceID : vertexFaces[pair.v2])
         {
             if (!validFaces[faceID])
@@ -155,6 +153,9 @@ namespace quadric_error_metrics
                 if (face[i] == pair.v2)
                     face[i] = pair.v1;
             }
+
+            if (!validFaces[faceID])
+                degenerateFace++;
 
             vertexFaces[pair.v1].emplace(faceID);
         }
@@ -181,6 +182,8 @@ namespace quadric_error_metrics
                 if (edges[j + 0] == pair.v1 || edges[j + 1] == pair.v1)
                     emplace_pair(edges[j + 0], edges[j + 1]);
         }
+
+        return degenerateFace;
     };
 
     template <typename T>

@@ -10,7 +10,7 @@
 #include "Voxel.hpp"
 #include "Mesh.hpp"
 
-mesh::Mesh<float> create_test_mesh();
+mesh::Mesh<float> new_test_mesh();
 
 int main()
 {
@@ -31,6 +31,7 @@ int main()
         "Extract mesh", [](const auto &voxels)
         { return marching_cubes::extract<float>(voxels, 0.5); },
         voxels);
+    // auto mesh = new_test_mesh();
 
     util::run_with_duration(
         "Simplify mesh", [&mesh]()
@@ -42,7 +43,7 @@ int main()
     return 0;
 }
 
-mesh::Mesh<float> create_test_mesh()
+mesh::Mesh<float> new_test_mesh()
 {
     mesh::Mesh<float> mesh;
 

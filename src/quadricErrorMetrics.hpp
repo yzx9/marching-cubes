@@ -119,8 +119,8 @@ namespace quadric_error_metrics
             {
                 auto v1 = edges[j + 0];
                 auto v2 = edges[j + 1];
-                long id = v2 > v1 ? v1 << 32 + v2
-                                  : v2 << 32 + v1;
+                long id = v2 > v1 ? ((v1 << 32) + v2)
+                                  : ((v2 << 32) + v1);
                 if (pairIds.contains(id))
                     continue;
 
@@ -189,10 +189,11 @@ namespace quadric_error_metrics
     template <typename T>
     void QuadricErrorMetrics<T>::update_face_kp(int faceID)
     {
-        const auto &v = mesh.vertices;
-        const auto &f = mesh.faces[faceID];
-        const auto &v0 = v[f[0]].coord;
-        auto normal = vec::normalize(vec::product(v[f[1]].coord - v0, v[f[2]].coord - v0));
+        const auto &v0 = mesh.vertices[mesh.faces[faceID][0]].coord;
+        auto normal = vec::normalize(
+            vec::product(
+                mesh.vertices[mesh.faces[faceID][1]].coord - v0,
+                mesh.vertices[mesh.faces[faceID][2]].coord - v0));
 
         auto a = normal[0];
         auto b = normal[1];
@@ -228,7 +229,7 @@ namespace quadric_error_metrics
         {
             // Calc quadric error, Kp potentially contains planes(v1) ∩ planes(v2) twice.
             vec::Vec4<T> v(vertices[i].coord, 1);
-            T quadricError = v * (vertexKp[v1] + vertexKp[v2]) * v;
+            T quadricError = std::abs(v * (vertexKp[v1] + vertexKp[v2]) * v);
 
             if (quadricError < minQuadricError)
             {

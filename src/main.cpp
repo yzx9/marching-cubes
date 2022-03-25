@@ -10,9 +10,17 @@
 #include "Voxel.hpp"
 #include "Mesh.hpp"
 
-mesh::Mesh<float> new_test_mesh();
+void extract_soma_mesh();
+void simplify_test_mesh();
+void simplify_human_mesh();
 
 int main()
+{
+    extract_soma_mesh();
+    return 0;
+}
+
+void extract_soma_mesh()
 {
     constexpr auto img = "../data/seg_ImgSoma_17302_00020-x_14992.3_y_21970.3_z_4344.8.tiff";
     constexpr auto obj = "../tmp/seg_ImgSoma_17302_00020-x_14992.3_y_21970.3_z_4344.8.obj";
@@ -31,7 +39,6 @@ int main()
         "Extract mesh", [](const auto &voxels)
         { return marching_cubes::extract<float>(voxels, 0.5); },
         voxels);
-    // auto mesh = new_test_mesh();
 
     util::run_with_duration(
         "Simplify mesh", [&mesh]()
@@ -39,11 +46,9 @@ int main()
 
     auto objFilePath = std::filesystem::current_path().append(obj);
     obj::save<float>(objFilePath, mesh);
-
-    return 0;
 }
 
-mesh::Mesh<float> new_test_mesh()
+void simplify_test_mesh()
 {
     mesh::Mesh<float> mesh;
 
@@ -86,5 +91,26 @@ mesh::Mesh<float> new_test_mesh()
     for (auto f : faces)
         mesh.faces.emplace_back(f);
 
-    return mesh;
+    util::run_with_duration(
+        "Simplify mesh", [&mesh]()
+        { return quadric_error_metrics::simplify(mesh, 0.3); });
+
+    constexpr auto out = "../tmp/testCase.obj";
+    auto objFilePath = std::filesystem::current_path().append(out);
+    obj::save<float>(objFilePath, mesh);
+}
+
+void simplify_human_mesh()
+{
+    constexpr auto in = "../data/FinalBaseMesh.obj";
+    constexpr auto out = "../tmp/FinalBaseMesh.obj";
+    auto filePath = std::filesystem::current_path().append(in);
+    auto mesh = obj::read(filePath);
+
+    util::run_with_duration(
+        "Simplify mesh", [&mesh]()
+        { return quadric_error_metrics::simplify(mesh, 0.3); });
+
+    auto objFilePath = std::filesystem::current_path().append(out);
+    obj::save<float>(objFilePath, mesh);
 }

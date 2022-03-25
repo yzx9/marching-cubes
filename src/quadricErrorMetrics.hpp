@@ -217,18 +217,32 @@ namespace quadric_error_metrics
     void QuadricErrorMetrics<T>::emplace_pair(int v1, int v2)
     {
         // TODO
-        auto vertex = mesh::interpolate(0.5, mesh.vertices[v1], mesh.vertices[v2]);
+        std::vector<mesh::Vertex<T>> vertexs{
+            mesh.vertices[v1],
+            mesh.vertices[v2],
+            mesh::interpolate(0.5, mesh.vertices[v1], mesh.vertices[v2])};
 
-        // Calc quadric error, Kp potentially contains planes(v1) ∩ planes(v2) twice.
-        vec::Vec4<T> v(vertex.coord, 1);
-        T quadricError = v * (verticeKp[v1] + verticeKp[v2]) * v;
+        auto minQuadricError = std::numeric_limits<T>::max();
+        auto minQuadricErrorVertex = -1;
+        for (auto i = 0; i < vertexs.size(); i++)
+        {
+            // Calc quadric error, Kp potentially contains planes(v1) ∩ planes(v2) twice.
+            vec::Vec4<T> v(vertexs[i].coord, 1);
+            T quadricError = v * (verticeKp[v1] + verticeKp[v2]) * v;
+
+            if (quadricError < minQuadricError)
+            {
+                minQuadricError = quadricError;
+                minQuadricErrorVertex = i;
+            }
+        }
 
         pairs.emplace(Pair<T>{
             v1 : v1,
             v2 : v2,
             version : vertexVersions[v1] + vertexVersions[v2],
-            quadricError : quadricError,
-            newVertex : vertex
+            quadricError : minQuadricError,
+            newVertex : vertexs[minQuadricErrorVertex]
         });
     }
 

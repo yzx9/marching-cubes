@@ -17,6 +17,8 @@ void simplify_human_mesh();
 int main()
 {
     extract_soma_mesh();
+    // simplify_test_mesh();
+    // simplify_human_mesh();
     return 0;
 }
 

@@ -24,8 +24,11 @@ namespace voxel
         template <typename Tin, typename Tout, int Scale = std::numeric_limits<Tin>::max()>
         Voxels<Tout> normalize(Voxels<Tin> imgs);
 
-        template <typename T, int Size>
-        constexpr std::array<T, Size> generate_gaussian_vector(double sigma);
+        template <typename T>
+        Voxels<T> smooth(const Voxels<T> &voxels, const std::vector<T> &gaussian_vector);
+
+        template <typename T>
+        constexpr std::vector<T> generate_gaussian_vector(int size, double sigma);
     }
 
     template <typename T>
@@ -38,46 +41,15 @@ namespace voxel
     template <typename T, int Size>
     Voxels<T> smooth(const Voxels<T> &voxels)
     {
-        const auto vec = _private::generate_gaussian_vector<T, Size>(0.8);
+        const auto vec = _private::generate_gaussian_vector<T>(Size, 0.8);
+        return _private::smooth<T>(voxels, vec);
+    }
 
-        // Sperate gaussian filter
-        Voxels<T> src;
-        Voxels<T> dst = voxels;
-        for (int channel = 0; channel < 3; channel++)
-        {
-            src = dst;
-            for (int i = 0; i < voxels.size() - Size; i++)
-            {
-                for (int j = 0; j < voxels[0].size() - Size; j++)
-                {
-                    for (int k = 0; k < voxels[0][0].size() - Size; k++)
-                    {
-                        T sum = 0;
-                        for (int t = 0; t < Size; t++)
-                        {
-                            T val;
-                            if (channel == 0)
-                                val = src[i + t][j][k];
-                            else if (channel == 1)
-                                val = src[i][j + t][k];
-                            else if (channel == 2)
-                                val = src[i][j][k + t];
-
-                            sum += vec[t] * val; // x
-                        }
-
-                        if (sum < 0)
-                            sum = static_cast<T>(0);
-                        else if (sum > 1)
-                            sum = static_cast<T>(1);
-
-                        dst[i][j][k] = sum;
-                    }
-                }
-            }
-        }
-
-        return dst;
+    template <typename T>
+    Voxels<T> smooth(const Voxels<T> &voxels, int size)
+    {
+        const auto vec = _private::generate_gaussian_vector<T>(size, 0.8);
+        return _private::smooth<T>(voxels, vec);
     }
 
     template <typename T>
@@ -176,13 +148,57 @@ namespace voxel
             return std::move(newImgs);
         }
 
-        template <typename T, int Size>
-        constexpr std::array<T, Size> generate_gaussian_vector(double sigma)
+        template <typename T>
+        Voxels<T> smooth(const Voxels<T> &voxels, const std::vector<T> &gaussian_vector)
         {
-            std::array<T, Size> vec;
+            // Sperate gaussian filter
+            Voxels<T> src;
+            Voxels<T> dst = voxels;
+            int size = gaussian_vector.size();
+            for (int channel = 0; channel < 3; channel++)
+            {
+                src = dst;
+                for (int i = 0; i < voxels.size() - size; i++)
+                {
+                    for (int j = 0; j < voxels[0].size() - size; j++)
+                    {
+                        for (int k = 0; k < voxels[0][0].size() - size; k++)
+                        {
+                            T sum = 0;
+                            for (int t = 0; t < size; t++)
+                            {
+                                T val;
+                                if (channel == 0)
+                                    val = src[i + t][j][k];
+                                else if (channel == 1)
+                                    val = src[i][j + t][k];
+                                else if (channel == 2)
+                                    val = src[i][j][k + t];
+
+                                sum += gaussian_vector[t] * val; // x
+                            }
+
+                            if (sum < 0)
+                                sum = static_cast<T>(0);
+                            else if (sum > 1)
+                                sum = static_cast<T>(1);
+
+                            dst[i][j][k] = sum;
+                        }
+                    }
+                }
+            }
+
+            return dst;
+        }
+
+        template <typename T>
+        constexpr std::vector<T> generate_gaussian_vector(int size, double sigma)
+        {
+            std::vector<T> vec(size);
             double sum = 0;
-            int origin = Size / 2;
-            for (int i = 0; i < Size; i++)
+            int origin = size / 2;
+            for (int i = 0; i < size; i++)
             {
                 // ignore coefficient
                 T g = std::exp(-(i - origin) * (i - origin) / (2 * sigma * sigma));
@@ -191,7 +207,7 @@ namespace voxel
             }
 
             // normalize
-            for (int i = 0; i < Size; i++)
+            for (int i = 0; i < size; i++)
                 vec[i] /= sum;
 
             return vec;
